@@ -1,10 +1,4 @@
 """
-Structure
-=
-
-The structure of the project. Prevalent high-level concepts.
-Where such concepts are manifested.
-
 Requirements
 =
 
@@ -16,32 +10,26 @@ Defense
 Defend your project's existence, but only defend modules that are intended for
 external use.
 """
-abstract = 'single sentence description of project'
+abstract = 'terminal display support for character devices and web browsers'
 
 #: Project name.
-name = 'skeleton'
+name = 'terminal'
 
 #: The name of the conceptual branch of development.
-fork = 'ghostly' # Explicit branch name and a codename for the major version of the project.
+fork = 'dark' # Explicit branch name and a codename for the major version of the project.
 release = None # A number indicating its position in the releases of a branch. (fork)
 
 #: The particular study or subject that the package is related to.
 study = {}
 
 #: Relevant emoji or reference--URL or relative file path--to an image file.
-icon = '👻'
+icon = '💻'
 
 #: IRI based project identity. (project homepage)
-identity = 'URL uniquely identifying the project.'
+identity = 'https://fault.io/project/python/terminal'
 
 #: Responsible Party
-controller = 'Your Name or Organization'
+controller = 'fault.io'
 
 #: Contact point for the Responsible Party
-contact = 'mailto:x'
-
-#: Version tuple: (major, minor, patch)
-version_info = (0, 1, 0)
-
-#: The version string.
-version = '.'.join(map(str, version_info))
+contact = 'mailto:critical@fault.io'
