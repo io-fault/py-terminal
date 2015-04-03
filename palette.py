@@ -1,10 +1,12 @@
 """
-Color code translations for 256-color supporting terminals.
+Color code translations for 256-color supporting terminals. Sourced from xterm.
 """
 
 def gray_palette(index):
 	"""
-	Twenty four shades.
+	Twenty four shades. Map range(24) for the full palette.
+
+	White and black are not included.
 	"""
 	if index < 0:
 		index = 0
@@ -17,7 +19,7 @@ def gray_palette(index):
 
 def gray_code(color):
 	"""
-	Look up a particular gray code in the gray palette.
+	Look up a particular gray code in the gray palette using a 32-bit color.
 	"""
 	value = value & 0xFF
 	r = (value - 8) // 10
@@ -26,6 +28,8 @@ def gray_code(color):
 def color_palette(red, green, blue):
 	"""
 	Select a color from the 256-color palette using 0-6 indexes for each color.
+
+	Map the combination of three range(6) instances to render the full palette.
 	"""
 	code = 16 + (red * 36) + (green * 6) + blue
 
@@ -42,7 +46,7 @@ def color_palette(red, green, blue):
 
 def color_code(color):
 	"""
-	Look up a particular color code in the color palette.
+	Look up a particular gray code in the gray palette using a 32-bit color.
 	"""
 	r, g, b = (color & 0xFF0000) >> 16, (color & 0x00FF00) >> 8, (color & 0xFF)
 	ri = (r - 55) // 40
