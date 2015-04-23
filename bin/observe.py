@@ -1,9 +1,9 @@
-from .. import libterminal
+from .. import library
 
 def main():
-	control = libterminal.Control.stdtty()
-	with control:
-		for x in control.events():
+	terminal = library.Terminal.stdtty()
+	with terminal:
+		for x in terminal.events():
 			for y in x:
 				print(repr(y) + '\r')
 				if y.control == True and y.identity == 'c':

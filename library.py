@@ -1,7 +1,5 @@
 """
 The terminal I/O interfaces.
-
-.. warning:: This module is for internal use only. DO NOT USE!
 """
 import sys
 import os
@@ -13,17 +11,54 @@ import locale
 import contextlib
 import collections
 
-#: Description of a key press. Terminals provide limited information about
-#: things like keyboard state, so this structure is limited to what is
-#: usually available.
+path = '/dev/tty'
+
 Key = collections.namedtuple(
 	"Key", ("type", "string", "identity", "control", "meta")
 )
 
+def restore_at_exit(path = path):
+	"""
+	Save the Terminal state and register an atexit handler to restore it.
+	"""
+	import atexit
+
+	with open(path, mode='r+b') as tty:
+		def _restore_terminal(path = path, terminal_state = termios.tcgetattr(tty.fileno())):
+			# in case cursor was hidden
+			with open(path, mode='r+b') as f:
+				f.write(b'\x1b[?12l\x1b[?25h') # normalize cursor
+				termios.tcsetattr(f.fileno(), termios.TCSADRAIN, terminal_state)
+
+	atexit.register(_restore_terminal)
+
+
+__control_requests__ = []
+
+def request_control(controller):
+	"""
+	Request exclusive control of the terminal.
+	Often used as a effect of to a SIGTIN or SIGTOUT signal for the would be foreground.
+	"""
+
+__control_residual__ = []
+
+def residual_control(controller):
+	"""
+	Identify the controller as residual having the effect that it registers itself
+	as taking control after outstanding requests have relinquished their ownership.
+	"""
+
 class Teletype(object):
-	"XXX: Lame hack avoiding terminfo databases; docs are hard to find."
+	"""
+	Control function index for drawing on a terminal display.
+	"""
 	def __init__(self, name):
 		self.name = name
+
+	@staticmethod
+	def hide():
+		return '\x1b[?25l'
 
 	@staticmethod
 	def backspace(ntimes):
@@ -220,6 +255,7 @@ class Input(object):
 		'OQ': Key('function', 'OQ', 2, False, False),
 		'OR': Key('function', 'OR', 3, False, False),
 		'OS': Key('function', 'OS', 4, False, False),
+
 		'[15~': Key('function', '[15~', 5, False, False),
 		'[17~': Key('function', '[17~', 6, False, False),
 		'[18~': Key('function', '[18~', 7, False, False),
@@ -335,9 +371,9 @@ class Input(object):
 	def __next__(self):
 		return self.draw()
 
-class Control(object):
+class Terminal(object):
 	"""
-	UNIX Terminal controller.
+	Terminal controller.
 
 	This class is fundamental and should be subclassed
 	in order to provide the desired functionality.
@@ -349,6 +385,19 @@ class Control(object):
 		self.fio = filenos
 		self.input = input
 		self.output = output
+
+	def acquire(self):
+		"""
+		Acquire control of the Terminal storing the existing settings
+		and initializing raw mode.
+		"""
+		fd = self.fio[1]
+		self._stored_settings = termios.tcgetattr(fd)
+		tty.setcbreak(fd)
+		tty.setraw(fd)
+		new = termios.tcgetattr(fd)
+		new[3] = new[3] & ~(termios.ECHO|termios.ICRNL)
+		termios.tcsetattr(fd, termios.TCSADRAIN, new)
 
 	@property
 	def terminated(self):
