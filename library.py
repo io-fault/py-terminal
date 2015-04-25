@@ -10,14 +10,12 @@ import array
 import locale
 import contextlib
 import collections
+import operator
 
-path = '/dev/tty'
+from . import core
+from . import device
 
-Key = collections.namedtuple(
-	"Key", ("type", "string", "identity", "control", "meta")
-)
-
-def restore_at_exit(path = path):
+def restore_at_exit(path = device.path):
 	"""
 	Save the Terminal state and register an atexit handler to restore it.
 	"""
@@ -32,157 +30,19 @@ def restore_at_exit(path = path):
 
 	atexit.register(_restore_terminal)
 
-
-__control_requests__ = []
-
 def request_control(controller):
 	"""
 	Request exclusive control of the terminal.
 	Often used as a effect of to a SIGTIN or SIGTOUT signal for the would be foreground.
-	"""
 
-__control_residual__ = []
+	Primarily used by shell implementations and multi-facet processes.
+	"""
 
 def residual_control(controller):
 	"""
 	Identify the controller as residual having the effect that it registers itself
 	as taking control after outstanding requests have relinquished their ownership.
 	"""
-
-class Teletype(object):
-	"""
-	Control function index for drawing on a terminal display.
-	"""
-	def __init__(self, name):
-		self.name = name
-
-	@staticmethod
-	def hide():
-		return '\x1b[?25l'
-
-	@staticmethod
-	def backspace(ntimes):
-		return '\b \b' * ntimes
-
-	@staticmethod
-	def seek(coords):
-		'relocate the carat to an arbitrary, absolute location'
-		h, v = coords
-		return ''.join((
-			'\x1b[', str(h), ';', str(v), 'H',
-		))
-
-	@staticmethod
-	def hseekr(n):
-		'Horizontally adjust the carat (relative)'
-		if n < 0:
-			return ''.join((
-				'\x1b[', str(-n), 'D'
-			))
-		elif n > 0:
-			return ''.join((
-				'\x1b[', str(n), 'C'
-			))
-		else:
-			return ''
-
-	@staticmethod
-	def vseekr(n):
-		'Vertically adjust the carat (relative)'
-		if n < 0:
-			return ''.join(('\x1b[', str(-n), 'A'))
-		elif n > 0:
-			return ''.join(('\x1b[', str(n), 'B'))
-		else:
-			return ''
-
-	@classmethod
-	def seekr(typ, rcoords):
-		h, v = rcoords
-		return typ.hseekr(h) + typ.vseekr(v)
-
-	@staticmethod
-	def clear():
-		'Clear the entire screen.'
-		return '\x1b[\x48\x1b\x5b\x32\x4a'
-
-	@staticmethod
-	def clear_former():
-		return '\x1b[\x31\x4b'
-
-	@staticmethod
-	def clear_latter():
-		return '\x1b[\x4b'
-
-	@staticmethod
-	def clear_line():
-		return '\x1b[\x31\x4b' + '\x1b[\x4b'
-
-	@staticmethod
-	def new():
-		'Open newline'
-		return '\n\r'
-
-	@staticmethod
-	def beginning():
-		'Return the beginning of the line'
-		return '\r'
-
-	@staticmethod
-	def store():
-		'Save the current carat position'
-		return '\x1b\x37'
-
-	@staticmethod
-	def restore():
-		'Restore the stored carat position'
-		return '\x1b\x38'
-
-	@staticmethod
-	def deflate(area):
-		'Delete space, (horizontal, vertical) between the carat.'
-		change = ''
-		h, v = area
-		if h:
-			change += ''.join((
-				'\x1b[', str(h), 'P'
-			))
-		if v:
-			change += ''.join((
-				'\x1b[', str(v), 'M'
-			))
-		return change
-
-	@staticmethod
-	def inflate(area):
-		"""
-		Insert space, (horizontal, vertical) between the carat.
-		"""
-		change = ''
-		h, v = area
-		if h:
-			change += ''.join((
-				'\x1b[', str(h), '@'
-			))
-		if v:
-			change += ''.join((
-				'\x1b[', str(v), 'L'
-			))
-		return change
-
-	@classmethod
-	def adjust(typ, slice, characters):
-		"""
-		Perform a subsitution.
-		"""
-		seek = typ.seek((slice.start, -1)) # relative to the carat
-		deletes = typ.deflate((slice.stop - slice.start, 0))
-		spaces = typ.inflate((len(characters), 0))
-		return ''.join((
-			seek,
-			deletes,
-			spaces,
-		))
 
 class Output(object):
 	"""
@@ -223,138 +83,6 @@ class Input(object):
 		self.encoding = encoding
 		self.source = source
 
-	#: Key events whose identifiers assume an escape prefix.
-	escaped = {
-		'': Key('control', '', 'escape', None, False),
-		' ': Key('control', ' ', 'space', False, True),
-
-		'[3~': Key('control', '[3~', 'delete', False, False),
-		'\x7f': Key('control', '\x7f', 'delete-back', False, True),
-		'\x08': Key('control', '\x08', 'backspace', False, True),
-
-		# shift-tab and shift-meta-tab
-		'[Z': Key('tab', '[Z', 'shift-tab', False, False),
-		'[Z': Key('tab', '[Z', 'shift-tab', False, True),
-
-		'[H': Key('direction', '[H', 'home', False, False), # home
-		'[F': Key('direction', '[F', 'end', False, False), # end
-		'[5~': Key('direction', '[5~', 'pageup', False, False), # page up
-		'[6~': Key('direction', '[6~', 'pagedown', False, False), # page down
-
-		'OD': Key('direction', 'OD', 'left', False, False),
-		'OC': Key('direction', 'OC', 'right', False, False),
-		'OA': Key('direction', 'OA', 'up', False, False),
-		'OB': Key('direction', 'OB', 'down', False, False),
-
-		'[1;3D': Key('direction', '[1;3D', 'left', False, True),
-		'[1;3C': Key('direction', '[1;3C', 'right', False, True),
-		'[1;3A': Key('direction', '[1;3A', 'up', False, True),
-		'[1;3B': Key('direction', '[1;3B', 'down', False, True),
-
-		'OP': Key('function', 'OP', 1, False, False),
-		'OQ': Key('function', 'OQ', 2, False, False),
-		'OR': Key('function', 'OR', 3, False, False),
-		'OS': Key('function', 'OS', 4, False, False),
-
-		'[15~': Key('function', '[15~', 5, False, False),
-		'[17~': Key('function', '[17~', 6, False, False),
-		'[18~': Key('function', '[18~', 7, False, False),
-		'[19~': Key('function', '[19~', 8, False, False),
-		'[20~': Key('function', '[20~', 9, False, False),
-		'[21~': Key('function', '[21~', 10, False, False),
-	}
-
-	exact = dict(
-		# Some of these get overridden with their
-		# common representation.
-		zip(
-			(
-				'', '', '', '',
-				'', '', '', '',
-				'\t', '\r', '', '',
-				'\n', '', '', '',
-				'\x11', '', '\x13', '',
-				'', '', '', '',
-				'', '',
-			),
-			(
-				Key('control', x, x, True, False)
-				for x in map(chr, range(ord('a'), ord('z')+1))
-			)
-		)
-	)
-
-	# Override any of the identified control characters with these.
-	exact.update({
-		'\x00': Key('control', '\x00', 'space', True, False),
-		'\t': Key('control', '\t', 'tab', False, False),
-		' ': Key('control', ' ', 'space', False, False),
-
-		'\x7f': Key('control', '\x7f', 'delete-back', False, False),
-		'\b': Key('control', '\b', 'backspace', False, False),
-
-		'\r': Key('control', '\r', 'return', False, False),
-		'': Key('control', '', 'enter', True, False),
-		'\n': Key('control', '\n', 'newline', False, False),
-
-		'': Key('control', '\\', 'backslash', True, False),
-		'': Key('control', '_', 'underscore', True, False),
-	})
-
-	def kexact(self, keys):
-		'Resolve events for keys without escapes'
-		return [
-			self.exact.get(x) if x in self.exact
-			else Key('literal', x, x, False, False) for x in keys
-		]
-
-	def kescaped(self, key):
-		if key in self.escaped:
-			return self.escaped[key]
-		else:
-			return Key('meta', key, key, False, True)
-
-	def kevent(self, keys):
-		"""
-		Resolve the events for the given keys.
-		"""
-		first = keys.find('\x1b')
-
-		if first == -1:
-			# No escapes, just iterate over the characters.
-			return self.kexact(keys)
-		elif keys:
-			# Escape Code to map control characters.
-
-			if first > 0:
-				events = self.kexact(keys[:first])
-			else:
-				events = []
-
-			# split on the escapes and map the sequences to KeyPressEvents
-			escapes = iter(keys[first:].split('\x1b'))
-			next(escapes) # skip initial empty sequence
-			##
-			# XXX
-			# handle cases where multiple escapes are found.
-			# there are some cases of ambiguity, but this seems to be ideal?
-			escape_level = 0
-			for x in escapes:
-				# escape escape.
-				if not x:
-					escape_level += 1
-				else:
-					events.append(self.kescaped(('\x1b' * escape_level) + x))
-					escape_level = 0
-			else:
-				# handle the trailing escapes
-				if escape_level:
-					events.append(self.kescaped('\x1b' * escape_level))
-			return events
-		else:
-			# empty keys
-			return []
-
 	def draw(self):
 		"""
 		Draw events *from* the source.
@@ -363,7 +91,7 @@ class Input(object):
 		if not data:
 			return None
 		decoded = data.decode(self.encoding)
-		return self.kevent(decoded)
+		return device.key_events(decoded)
 
 	def __iter__(self):
 		return self
@@ -472,9 +200,134 @@ class Terminal(object):
 			return total
 		dowrite.fileno = filenos[1]
 
-		tty = Teletype(os.environ['TERM'])
 		return typ(
 			filenos,
-			typ.Input(tty, encoding, doread),
-			typ.Output(tty, encoding, dowrite)
+			Input(tty, encoding, doread),
+			Output(tty, encoding, dowrite)
 		)
+
+class Line(object):
+	"""
+	A line in a view to be drawn into an area.
+	"""
+	__slots__ = ('text',)
+
+	def __init__(self):
+		pass
+
+class View(object):
+	"""
+	A position independent sequence of lines.
+	View contents are projected to a rectangle.
+	"""
+
+class Point(tuple):
+	"""
+	A pair of integers describing a position.
+	"""
+	__slots__ = ()
+
+	@property
+	def x(self):
+		return self[0]
+
+	@property
+	def y(self):
+		return self[1]
+
+	@classmethod
+	def construct(Class, *points):
+		return Class(points[:2])
+
+class Rectangle(tuple):
+	"""
+	A arbitrary rectangle.
+	"""
+	@classmethod
+	def construct(Class, *points):
+		p = list(points)
+		p.sort()
+		return Class((p[0], p[-1]))
+
+	@classmethod
+	def define(Class, topleft = None, bottomright = None):
+		return Class((Point(topleft), Point(bottomright)))
+
+	@property
+	def width(self):
+		"""
+		Physical width.
+		"""
+		return self[1][0] - self[0][0]
+
+	@property
+	def height(self):
+		"""
+		Physical height.
+		"""
+		return self[1][1] - self[0][1]
+
+class Area(object):
+	"""
+	A subjective rectangle with a view for displaying lines.
+
+	A projection of the view.
+	"""
+
+class Layer(object):
+	"""
+	A view of the display. Contains &Area instances.
+	"""
+
+	def contents(self, rectangle):
+		"""
+		Returns a view of the rectangle based on the view of the underlying areas.
+		"""
+
+class Stack(object):
+	"""
+	The stack of layers that make up a display.
+	An ordered dictionary with explicitly defined indexes.
+	"""
+	@property
+	def width(self):
+		return self.dimensions[0]
+
+	@property
+	def height(self):
+		return self.dimensions[1]
+
+	@property
+	def quantity(self):
+		return len(self.layers)
+
+	@property
+	def names(self):
+		"""
+		Tuple of layer names according to their physical index.
+		"""
+		return tuple(x[1] for x in self.layers)
+
+	def __init__(self):
+		# literal sequence
+		self.layers = []
+		# index of names to layer index
+		self.index = {}
+
+		# absolute phsyical dimensions
+		self.dimensions = device.dimensions()
+
+	def insert(self, level, name, layer, _sk = operator.itemgetter(0)):
+		"""
+		Add a layer to the stack with the given name and level.
+		"""
+		self.layers.append((level, name, layer))
+		self.layers.sort(key=_sk)
+		self.index = { self.layers[i][1] : i for i in range(self.quantity) }
+
+	def update(self):
+		"""
+		Signal that the terminal has changed dimensions to cause.
+		"""
+		new_dims = device.dimensions()
+		self.dimensions = new_dims
