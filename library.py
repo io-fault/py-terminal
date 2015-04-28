@@ -1,5 +1,20 @@
 """
-The terminal I/O interfaces.
+The terminal I/O interfaces. The module consists of four conceptual areas: input, output,
+settings management, and control management.
+
+The input portions cover the data structures used to represent character (key) events, &Character,
+and the function used to construct them from an arbitrary bytes stream.
+
+The output portions are primarily two classes used to render the terminal control codes
+for a particular operation, essentially high-level tput. &Display for the entire terminal
+screen and &Area for displaying to parts of the screen.
+
+Settings management is covered with a few functions to configure the terminal in raw mode
+and store and restore the settings themselves.
+
+The control portion keeps state about the process-local controller of the terminal and any
+requests for control. This is a local version of the process signals used by sessions to
+manage terminal access for concurrent jobs.
 """
 import sys
 import os
@@ -11,9 +26,15 @@ import locale
 import contextlib
 import collections
 import operator
+import functools
+import itertools
 
 from . import core
 from . import device
+
+Character = core.Character
+Modifiers = core.Modifiers
+construct_character_events = device.construct_character_events
 
 def restore_at_exit(path = device.path):
 	"""
@@ -44,290 +65,142 @@ def residual_control(controller):
 	as taking control after outstanding requests have relinquished their ownership.
 	"""
 
-class Output(object):
+def scale(n, target = (1, 100), origin = (0, 0xFFFFFFFF), divmod = divmod):
 	"""
-	Manages display of text and carat positioning.
+	Given a number, target range, and a origin range. Project the number
+	onto the target range so that the projected number
+	is proportional to the target range with respect to the number's
+	relative position in the origin range. For instance::
 
-	FIXME: RESOLVE SEQUENCES USING TERMCAP
+	>>> scale(5, target=(1,100), origin=(1,10))
+	(50, 0, 9)
+
+	The return is a triple: (N, remainder, origin[1] - origin[0])
+	Where the second item is the remainder with the difference between the source
+	range's end and beginning.
 	"""
-	def __init__(self, tty, encoding, terminal):
-		self.tty = tty
-		self.terminal = terminal
-		self.encoding = encoding
+	# The relative complexity of this sequence of computations is due to the
+	# need to push division toward the end of the transformation sequence. That
+	# is, greater clarity can be achieved with some reorganization, but this
+	# would require the use of floating point operations, which is not desirable
+	# for some use cases where "perfect" scaling (index projections) is desired.
 
-	def modify(self, sliced, chars, styles):
-		'Echo with style'
-		adjustments = self.tty.adjust(sliced, chars)
-		data = adjustments.encode(self.encoding) + chars.encode(self.encoding)
-		self.terminal(data)
+	dx, dy = target
+	sx, sy = origin
+	# source range
+	# (this is used to adjust 'n' relative to zero, see 'N' below)
+	sb = sy - sx
+	# destination range
+	# (used to map the adjusted 'n' relative to the destination)
+	db = dy - dx
+	# bring N relative to *beginning of the source range*
+	N = n - sx
+	# magnify N to the destination range
+	# divmod by the source range to get N relative to the
+	# *the destination range*
+	n, r = divmod(N * db, sb)
+	# dx + N to make N relative to beginning of the destination range
+	return dx + n, r, sb
 
-	def draw(self, events, getattr = getattr):
-		data = ''
-		for methname, *args in events:
-			meth = getattr(self.terminal, methname)
-			data += meth(*args)
-		self.terminal(data)
+Display = device.Display
 
-class Input(object):
+class Area(Display):
 	"""
-	Terminal input controller and key mapping.
-
-	In order to properly regulate the event sequence and to shape initial
-	typing and conversion,
-
-	FIXME: RESOLVE SEQUENCES USING TERMCAP DB or terminal querying?
+	A Display class whose seek operations are translated according to the configured position.
 	"""
 
-	def __init__(self, tty, encoding, source):
-		self.tty = tty
-		self.encoding = encoding
-		self.source = source
-
-	def draw(self):
+	def update(self, position, dimensions):
 		"""
-		Draw events *from* the source.
+		Update the position of the area.
 		"""
-		data = self.source()
-		if not data:
-			return None
-		decoded = data.decode(self.encoding)
-		return device.key_events(decoded)
+		self.point = position
+		self.dimensions = dimensions
+		# track relative position for seek operations
+		self.width, self.height = dimensions
 
-	def __iter__(self):
-		return self
-
-	def __next__(self):
-		return self.draw()
-
-class Terminal(object):
-	"""
-	Terminal controller.
-
-	This class is fundamental and should be subclassed
-	in order to provide the desired functionality.
-	"""
-	Input = Input
-	Output = Output
-
-	def __init__(self, filenos, input, output):
-		self.fio = filenos
-		self.input = input
-		self.output = output
-
-	def acquire(self):
+	def seek(self, point):
 		"""
-		Acquire control of the Terminal storing the existing settings
-		and initializing raw mode.
+		Seek to the point relative to the area.
 		"""
-		fd = self.fio[1]
-		self._stored_settings = termios.tcgetattr(fd)
-		tty.setcbreak(fd)
-		tty.setraw(fd)
-		new = termios.tcgetattr(fd)
-		new[3] = new[3] & ~(termios.ECHO|termios.ICRNL)
-		termios.tcsetattr(fd, termios.TCSADRAIN, new)
+		return self.seek_absolute(self.translate(self.point, point))
 
-	@property
-	def terminated(self):
-		'Designates when the session has been closed.'
-		return self.input is None
-
-	def terminate(self):
-		self.input = None
-
-	def dimensions(self, winsize = array.array("h", [0,0,0,0])):
-		winsize = winsize * 1
-		fcntl.ioctl(self.fio[1], termios.TIOCGWINSZ, winsize, True)
-		return (winsize[1], winsize[0])
-
-	def __enter__(self):
-		self._stored_settings = termios.tcgetattr(self.fio[1])
-		tty.setcbreak(self.fio[1])
-		tty.setraw(self.fio[1])
-		new = termios.tcgetattr(self.fio[1])
-		new[3] = new[3] & ~(termios.ECHO|termios.ICRNL)
-		termios.tcsetattr(self.fio[1], termios.TCSADRAIN, new)
-
-	def __exit__(self, *args):
-		termios.tcsetattr(self.fio[1], termios.TCSADRAIN, self._stored_settings)
-
-	@contextlib.contextmanager
-	def lend(self):
+	def seek_start_of_line(self):
 		"""
-		Restore the terminal state to how it was prior to entering;
-		then back to raw on exit.
+		Seek to the start of the line.
 		"""
-		self.__exit__()
-		try:
-			yield None
-		finally:
-			self.__enter__()
+		return super().seek_start_of_line() + self.seek_horizontal_relative(self.point[0] - 1)
 
-	def events(self):
+	def seek_bottom(self):
 		"""
-		Yield the events produced by :py:attr:`input`.
+		Seek to the last row of the area and the first column.
 		"""
-		for x in self.input:
-			yield x
+		return self.seek((0, self.height-1))
 
-	def draws(self, tgi):
-		"""
-		Perform the sequence of modification.
-		"""
-		for x in tgi:
-			self.output.modify(*x)
-
-	@classmethod
-	def stdtty(typ, filenos = None, encoding = None):
-		"""
-		Return a Controlling associated with stdie.
-		"""
-		if filenos is None:
-			filenos = (sys.stdin.fileno(), sys.stderr.fileno())
-		if encoding is None:
-			encoding = locale.getpreferredencoding()
-
-		def doread(fd = filenos[0], chunksize = 128, read = os.read):
-			return read(fd, chunksize)
-		doread.fileno = filenos[0]
-
-		def dowrite(data, fd = filenos[1], write = os.write):
-			total = len(data)
-			sent = 0
-			while data:
-				sent = write(fd, data)
-				data = data[sent:]
-			return total
-		dowrite.fileno = filenos[1]
-
-		return typ(
-			filenos,
-			Input(tty, encoding, doread),
-			Output(tty, encoding, dowrite)
-		)
+	@staticmethod
+	@functools.lru_cache(32)
+	def translate(spoint, point):
+		return (point[0] + spoint[0], point[1] + spoint[1])
 
 class Line(object):
 	"""
-	A line in a view to be drawn into an area.
+	A line be drawn on an area; styled and width clipping functionality.
 	"""
-	__slots__ = ('text',)
+	__slots__ = ('text', 'overlay', 'display', 'clipped', 'length')
 
-	def __init__(self):
-		pass
+	def __init__(self, text, overlay = ()):
+		self.text = text
+		self.overlay = overlay
+		self.length = sum(map(len, (x[0] for x in self.text)))
+		self.clipped = 0
 
-class View(object):
-	"""
-	A position independent sequence of lines.
-	View contents are projected to a rectangle.
-	"""
-
-class Point(tuple):
-	"""
-	A pair of integers describing a position.
-	"""
-	__slots__ = ()
-
-	@property
-	def x(self):
-		return self[0]
-
-	@property
-	def y(self):
-		return self[1]
-
-	@classmethod
-	def construct(Class, *points):
-		return Class(points[:2])
-
-class Rectangle(tuple):
-	"""
-	A arbitrary rectangle.
-	"""
-	@classmethod
-	def construct(Class, *points):
-		p = list(points)
-		p.sort()
-		return Class((p[0], p[-1]))
-
-	@classmethod
-	def define(Class, topleft = None, bottomright = None):
-		return Class((Point(topleft), Point(bottomright)))
-
-	@property
-	def width(self):
+	def clip(self, width):
 		"""
-		Physical width.
+		Clip the text according to the given width.
+		Used to prepare the (display) line for rendering.
+
+		Can be used multiple times in order to reflect area changes.
 		"""
-		return self[1][0] - self[0][0]
+		s = 0
+		i = 0
+		l = 0
 
-	@property
-	def height(self):
+		for i in range(len(self.text)):
+			l = len(self.text[i][0])
+			s += l
+			if s > width:
+				break
+		else:
+			# text length does not exceed width
+			self.clipped = 0
+			return 0
+
+		# trim the excess off of the i'th element
+		trim, *styling = self.text[i]
+		excess = s - width
+
+		t = list(self.text[:i])
+		trimmed = trim[:len(trim)-excess]
+
+		styling.insert(0, trimmed)
+		t.append(tuple(styling))
+
+		self.display = (t, self.overlay)
+
+		self.clipped = excess
+		return excess
+
+	def render(self, area, map = itertools.starmap):
 		"""
-		Physical height.
+		Render the line according to the given area and the given offset.
+
+		The rendered string will be clipped according to the area's width and
+		the given draw offset.
 		"""
-		return self[1][1] - self[0][1]
+		text, overlay = self.display
 
-class Area(object):
-	"""
-	A subjective rectangle with a view for displaying lines.
+		data = b''.join(map(area.style, text))
+		data += area.seek_horizontal_relative(- (self.length - self.clipped))
+		data += b''.join([x for x in overlay])
+		data += area.seek_start_of_next_line()
 
-	A projection of the view.
-	"""
-
-class Layer(object):
-	"""
-	A view of the display. Contains &Area instances.
-	"""
-
-	def contents(self, rectangle):
-		"""
-		Returns a view of the rectangle based on the view of the underlying areas.
-		"""
-
-class Stack(object):
-	"""
-	The stack of layers that make up a display.
-	An ordered dictionary with explicitly defined indexes.
-	"""
-	@property
-	def width(self):
-		return self.dimensions[0]
-
-	@property
-	def height(self):
-		return self.dimensions[1]
-
-	@property
-	def quantity(self):
-		return len(self.layers)
-
-	@property
-	def names(self):
-		"""
-		Tuple of layer names according to their physical index.
-		"""
-		return tuple(x[1] for x in self.layers)
-
-	def __init__(self):
-		# literal sequence
-		self.layers = []
-		# index of names to layer index
-		self.index = {}
-
-		# absolute phsyical dimensions
-		self.dimensions = device.dimensions()
-
-	def insert(self, level, name, layer, _sk = operator.itemgetter(0)):
-		"""
-		Add a layer to the stack with the given name and level.
-		"""
-		self.layers.append((level, name, layer))
-		self.layers.sort(key=_sk)
-		self.index = { self.layers[i][1] : i for i in range(self.quantity) }
-
-	def update(self):
-		"""
-		Signal that the terminal has changed dimensions to cause.
-		"""
-		new_dims = device.dimensions()
-		self.dimensions = new_dims
+		return data
