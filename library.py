@@ -152,6 +152,7 @@ class Line(object):
 		self.overlay = overlay
 		self.length = sum(map(len, (x[0] for x in self.text)))
 		self.clipped = 0
+		self.display = (text, overlay)
 
 	def clip(self, width):
 		"""
@@ -191,16 +192,25 @@ class Line(object):
 
 	def render(self, area, map = itertools.starmap):
 		"""
-		Render the line according to the given area and the given offset.
+		Render the line according to the given area.
 
-		The rendered string will be clipped according to the area's width and
-		the given draw offset.
+		The rendered string should be clipped *ahead of time* to restrict
+		its width.
 		"""
 		text, overlay = self.display
+		data = b''
 
-		data = b''.join(map(area.style, text))
-		data += area.seek_horizontal_relative(- (self.length - self.clipped))
-		data += b''.join([x for x in overlay])
+		if text:
+			data += b''.join(map(area.style, text))
+
+			display_length = - (self.length - self.clipped)
+			if display_length:
+				data += area.seek_horizontal_relative(display_length)
+
+		for relative_offset, otext in overlay:
+			data += area.seek_horizontal_relative(relative_offset)
+			data += b''.join(map(area.style, otext))
+
 		data += area.seek_start_of_next_line()
 
 		return data
