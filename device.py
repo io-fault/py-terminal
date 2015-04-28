@@ -18,6 +18,7 @@ import tty
 import termios
 
 from . import core
+from . import palette
 
 path = '/dev/tty'
 
@@ -29,11 +30,11 @@ separator = b';'
 terminator = b'm'
 
 reset = b'0'
-select_foreground = b'38;5;'
-select_background = b'48;5;'
+select_foreground = b'38;5'
+select_background = b'48;5'
 
 # Pairs are of the form: (Initiate, Terminate)
-styles = {
+style_codes = {
 	'bold': (b'1', b'22'),
 	'italic': (b'3', b'23'),
 	'underline': (b'4', b'24'),
@@ -164,6 +165,8 @@ def render_codes():
 				for n, mods in modifier_sequence
 			)
 		])
+
+# keep it in a function to avoid littering on the module locals
 render_codes()
 del render_codes
 
@@ -293,8 +296,7 @@ class Display(object):
 	def escape(self, terminator, *parts):
 		return self.escape_sequence + self.join(parts) + terminator
 
-	def __init__(self, name, capabilities = None, encoding = 'utf-8'):
-		self.name = name
+	def __init__(self, capabilities = None, encoding = 'utf-8'):
 		# XXX: reference capabilities instead of hardcoding sequences
 		self.capabilities = capabilities
 		self.encoding = encoding
@@ -305,12 +307,36 @@ class Display(object):
 	def carat_show(self):
 		return self.escape_sequence + b'[?12l' + self.escape_sequence + b'[?25h'
 
-	def style(self, style_set, text):
+	def print(self, text):
+		return self.encode(text)
+
+	def style(self, text, styles = (), color = None):
 		"""
-		Style the text according to the given set.
+		Style the text for printing according to the given style set and color.
+
+		&styles is a set of style names to apply. The support set is listed in &style_codes.
+		&color is a 24-bit color value that is translated to a terminal color code.
 		"""
 		# XXX: escape newlines and low-ascii?
-		return self.encode(text)
+		txt = self.encode(text)
+		if color is None and not styles:
+			return txt
+
+		prefix = b''
+		suffix = b''
+
+		if styles:
+			prefix += b''.join([self.escape(b'm', style_codes[x][0]) for x in styles])
+			suffix += b''.join([self.escape(b'm', style_codes[x][1]) for x in styles])
+
+		if color is not None:
+			translation = palette.translate(color)
+			strcode = palette.code_string(translation)
+
+			prefix += self.escape(b'm', select_foreground, strcode)
+			suffix += self.escape(b'm', reset)
+
+		return prefix + txt + suffix
 
 	def backspace(self, times = 1):
 		"""
@@ -331,10 +357,20 @@ class Display(object):
 		"""
 		return self.escape(self.encode(times) + b'X')
 
-	def seek(self, coordinates):
-		'relocate the carat to an arbitrary, absolute location'
+	def seek_absolute(self, coordinates):
+		'mechanics used by seek method. (use &seek)'
 		h, v = coordinates
-		return self.escape(b'H', str(h).encode('ascii'), str(v).encode('ascii'))
+		return self.escape(b'H', self.encode(h), self.encode(v))
+
+	def seek(self, coordinates):
+		"""
+		Relocate the carat to an arbitrary, (area) relative location.
+		"""
+		return self.seek_absolute(coordinates)
+
+	def seek_start_of_line(self):
+		'Return the beginning of the line'
+		return b'\r'
 
 	def seek_horizontal_relative(self, n):
 		'Horizontally adjust the carat (relative)'
@@ -358,22 +394,18 @@ class Display(object):
 		h, v = rcoords
 		return self.seek_horizontal_relative(h) + self.seek_vertical_relative(v)
 
-	def seek_start_of_line(self):
-		'Return the beginning of the line'
-		return b'\r'
-
 	def seek_next_line(self):
-		return b'\n'
+		return self.seek_vertical_relative(1)
 
 	def seek_start_of_next_line(self):
-		'Open newline'
-		return b'\n\r'
+		return self.seek_next_line() + self.seek_start_of_line()
 
 	def clear(self):
 		'Clear the entire screen.'
 		return self.escape_sequence + b'\x48' + self.escape_sequence + b'\x5b\x32\x4a'
 
 	def clear_to_line(self, n = 1):
+		'Clear the lines to a relative number'
 		return self.escape(self.encode(n) + b'J')
 
 	def clear_to_bottom(self):
@@ -473,26 +505,28 @@ def set_raw(fd, path = path):
 	"""
 	Set raw mode and return the previous settings.
 	"""
-	stored_settings = termios.tcgetattr(fd)
-
 	tty.setcbreak(fd)
 	tty.setraw(fd)
 	new = termios.tcgetattr(fd)
 	new[3] = new[3] & ~(termios.ECHO|termios.ICRNL)
 	termios.tcsetattr(fd, termios.TCSADRAIN, new)
 
-	return store_settings
+def settings_snapshot(fd):
+	"""
+	Get the current terminal settings.
+	"""
+	return termios.tcgetattr(fd)
 
-def restore_settings(fd, stored_settings, path = path):
+def settings_restore(fd, stored_settings, path = path):
 	"""
 	Apply the given settings.
 	"""
-	termios.tcsetattr(fd, termios.TCSADRAIN, stored_settings)
+	return termios.tcsetattr(fd, termios.TCSADRAIN, stored_settings)
 
 def dimensions(fd, winsize = array.array("h", [0,0,0,0])):
 	"""
 	Dimensions of the physical terminal.
 	"""
-	winsize = winsize * 1
+	winsize = winsize * 1 # get a new array instance
 	fcntl.ioctl(fd, termios.TIOCGWINSZ, winsize, True)
 	return (winsize[1], winsize[0])
