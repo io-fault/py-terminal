@@ -1,6 +1,7 @@
 """
 Color code translations for 256-color supporting terminals. Sourced from xterm.
 """
+import functools
 
 def gray_palette(index):
 	"""
@@ -27,6 +28,12 @@ def gray_code(color):
 	"""
 	r = (color - 8) // 10
 	return r + 232
+
+def scale_gray(color):
+	"""
+	Return the closest gray available in the palette.
+	"""
+	return gray_palette(gray_code(color & 0xFF) - 232)[0]
 
 def color_palette(r, g, b):
 	"""
@@ -57,6 +64,7 @@ def color_code(color):
 	"""
 	r, g, b = (color & 0xFF0000) >> 16, (color & 0x00FF00) >> 8, (color & 0xFF)
 	ri = (r - 55) // 40
+
 	if ri < 0:
 		ri = 0
 	gi = (g - 55) // 40
@@ -125,33 +133,69 @@ sixteen_colors = {
 
 def translate(rgb):
 	"""
-	Translate the given RGB color into a terminal color code.
+	Translate the given RGB color into a terminal color and gray colors that exist in
+	their corresponding palette.
 
-	This function analyzes the color and chooses the appropriate palette according to its
-	value.
+	This function analyzes the given RGB color and chooses the most similar value in
+	both gray and color palettes.
 	"""
+	typ = None
+	bw = 0
+
 	r = (rgb >> 16) & 0xFF
 	g = (rgb >> 8) & 0xFF
 	b = (rgb >> 0) & 0xFF
 
-	# if the values are within a range relative to the average, translate it as a gray
+	# if the values are within a range relative to the average, identify it as a gray
 	avg = ((r + g + b) / 3)
-	for x in (r, g, b):
-		if abs(x - avg) > 16:
-			# component exceeded the distinguishable range.
-			return color_code(scale_color(r, g, b))
+	gray = int(avg)
+
+	# select closest monochrome
+	r = [
+		('color', scale_color(r, g, b)),
+		('gray', scale_gray(gray)),
+	]
+	r.sort(key = lambda x: abs(x[1] - rgb))
+
+	return tuple(r)
+
+def color(translation):
+	"""
+	Return the 24-bit RGB value from a translation tuple.
+	"""
+	return translation[0][1]
+
+def code(translation):
+	"""
+	Return the terminal color code to use given the translation.
+	Simply select the initial item as the translated values are sorted in &translate.
+	"""
+	typ, value = translation[0]
+
+	if typ == 'gray':
+		return gray_code(value & 0xFF)
 	else:
-		# use scale_gray
-		avg = int(avg)
-		if avg < 0x9:
-			# the grays don't include black and white, so special case them here
-			return color_code(0x0)
-		elif avg > 0xF0:
-			return color_code(0xFFFFFF)
+		return color_code(value)
 
-		return gray_code(avg)
+@functools.lru_cache(64)
+def code_string(translation):
+	"""
+	The translation's code in bytes form for sending to the display.
+	"""
+	return str(code(translation)).encode('utf-8')
 
-	raise RuntimeError("function did not return according to programming")
+def index():
+	"""
+	Construct and return a full index of color codes to their corresponding RGB value.
+	"""
+	import itertools
+	idx = dict()
+	idx.update(((v, k) for k, v in sixteen_colors.items()))
+	idx.update(((v, k) for k, v in map(gray_palette, range(24))))
+	idx.update(((v, k) for k, v in itertools.starmap(
+		color_palette, itertools.product(range(6),range(6),range(6))
+	)))
+	return idx
 
 if __name__ == '__main__':
 	import sys
