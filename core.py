@@ -1,4 +1,5 @@
 """
+Primarily classes for representing input into a terminal.
 """
 import functools
 import unicodedata
