@@ -218,13 +218,24 @@ if __name__ == '__main__':
 		sys.stderr.write(escape(fg) + color + 'm' + text + normal + ' eof\n')
 		print("color = lambda x: '\\x1b[38;5;{0}m' + x + {1}".format(color, repr(normal)))
 	else:
+		ri = index()
 		i = 0
 		for r in range(6):
 			for g in range(6):
 				for b in range(6):
 					i = i + 1
 					v, c = color_palette(r, g, b)
-					sys.stderr.write((escape(bg) + str(c) + 'm     ' + normal + ': ' + str(c).rjust(3, ' ') + ' '))
+					t = hex(ri[c])[2:].rjust(6, '0')
+					sys.stderr.write((escape(bg) + str(c) + 'm     ' + normal + ': ' + t.rjust(3, ' ') + ' '))
 					if i > 12:
 						sys.stderr.write('\n')
 						i = 0
+		sys.stderr.write('\n')
+		for g in range(24):
+			i = i + 1
+			v, c = gray_palette(g)
+			t = hex(ri[c])[2:].rjust(6, '0')
+			sys.stderr.write((escape(bg) + str(c) + 'm     ' + normal + ': ' + t.rjust(3, ' ') + ' '))
+			if i > 12:
+				sys.stderr.write('\n')
+				i = 0
