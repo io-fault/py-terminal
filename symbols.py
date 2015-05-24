@@ -1,10 +1,53 @@
 """
 Dictionaries containing various unicode symbols for display purposes.
+
+This module will always be a *small* subset of unicode characters.
 """
+math = {
+	'divison': '÷',
+	'multiplication': '×',
+	'addition': '+',
+	'subtraction': '−',
+	'addition-and-subtraction': '±',
+	'angle': '∠',
+	'radical': '√',
+	'function': '𝑓',
+	'integral': '∫',
+	'coproduct': '∐',
+	'product': '∏',
+	'summation': '∑',
+	'infinity': '∞',
+	'differential': '𝜕',
+}
+
+logic = {
+	'identical': '≡',
+	'not-identical': '≢',
+	'equal': '=',
+	'not-equal': '≠',
+	'greater-than': '>',
+	'less-than': '<',
+	'equal-greater-than': '≥',
+	'equal-less-than': '≤',
+}
+
+arrows = {
+	'left': '←',
+	'right': '→',
+	'up': '↑',
+	'down': '↓',
+}
+
+wedge = {
+	'up': '∧',
+	'down': '∨',
+	'left': '<',
+	'right': '>',
+}
 
 modifiers = {
-	'caps_lock': '\u21EA', # ⇪
-	'num_lock':'\u21ED', # ⇭ 
+	'capslock': '\u21EA', # ⇪
+	'numlock':'\u21ED', # ⇭
 	'shift': '\u21E7', # ⇧
 	'control': '\u2303', # ⌃
 	'option': '\u2325', # ⌥
@@ -34,12 +77,8 @@ navigation = {
 	'escape': '\u238B', # ⎋
 	'home': '\u21F1', # ⇱
 	'end': '\u21F2', # ⇲
-	'page_up': '\u21DE', # ⇞
-	'page_down': '\u21DF', # ⇟
-	'up_arrow': '\u21E1', # ⇡
-	'down_arrow': '\u21E3', # ⇣
-	'left_arrow': '\u21E0', # ⇠
-	'right_arrow': '\u21E2', # ⇢
+	'page-up': '\u21DE', # ⇞
+	'page-down': '\u21DF', # ⇟
 }
 
 # borders middle of cell
@@ -59,6 +98,7 @@ intersections = {
 lines = {
 	'horizontal': '─',
 	'vertical': '│',
+	'vertical-heavy': '┃',
 	'diagonal-right': '╱',
 	'diagonal-left':  '╲',
 	'diagonal-cross': '╳',
@@ -67,7 +107,7 @@ lines = {
 # used for interactive annotations
 combining = {
 	'high': {
-		'horizontal-line': '\u0355',
+		'horizontal-line': '\u0305',
 
 		'rotate-arrow-left': '\u20D4',
 		'rotate-arrow-right': '\u20D5',
@@ -90,7 +130,7 @@ combining = {
 	},
 
 	'low': {
-		'horizontal-line': '\u0332',
+		'horizontal-line': '\u035F',
 
 		'intersection-left': '\u0318',
 		'intersection-right': '\u0319',
@@ -122,6 +162,7 @@ combining = {
 		'dotted-line': '\u20E8',
 	},
 
+	# combining characters that look like alphabet symbols.
 	'alphabet': {
 		'a': '\u0363',
 		'e': '\u0364',
