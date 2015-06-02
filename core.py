@@ -167,7 +167,9 @@ class Position(object):
 
 	def set(self, position):
 		"""
-		Set the offset relative to the datum using the given position.
+		Set the absolute position.
+
+		Calculates a new &offset based on the absolute &position.
 		"""
 		new = position - self.datum
 		change = self.offset - new
@@ -181,6 +183,14 @@ class Position(object):
 		self.datum = datum
 		self.magnitude = magnitude
 		self.offset = offset
+
+	def restore(self, snapshot):
+		"""
+		Restores the given snapshot.
+		"""
+		self.datum = snapshot[0]
+		self.offset = snapshot[1] - snapshot[0]
+		self.magnitude = snapshot[2] - snapshot[0]
 
 	def update(self, quantity):
 		"""
@@ -230,6 +240,76 @@ class Position(object):
 
 		return change
 
+	def constrain(self):
+		"""
+		Adjust the offset to be within the bounds of the magnitude.
+		Returns the change in position; positive values means that
+		the magnitude was being exceeded and negative values
+		mean that the minimum was being exceeded.
+		"""
+		o = self.offset
+		if o > self.magnitude:
+			self.offset = self.magnitude
+		elif o < 0:
+			self.offset = 0
+
+		return o - self.offset
+
+	def collapse(self):
+		"""
+		Move the origin to the position of the offset and zero out magnitude.
+		"""
+		o = self.offset
+		self.datum += o
+		self.offset = self.magnitude = 0
+		return o
+
+	def normalize(self):
+		"""
+		Relocate the origin, datum, to the offset and zero the magnitude and offset.
+		"""
+		if self.offset >= self.magnitude or self.offset < 0:
+			o = self.offset
+			self.datum += o
+			self.magnitude = 0
+			self.offset = 0
+			return o
+		return 0
+
+	def reposition(self, offset = 0):
+		"""
+		Reposition the &datum such that &offset will be equal to the given parameter.
+
+		The magnitude is untouched. The change to the origin, &datum, is returned.
+		"""
+		delta = self.offset - offset
+		self.datum += delta
+		self.offset = offset
+		return delta
+
+	def start(self):
+		"""
+		Start the position by adjusting the &datum to match the positionf of the &offset.
+		The magnitude will also be adjust to maintain its position.
+		"""
+		change = self.reposition()
+		self.magnitude -= change
+
+	def halt(self):
+		"""
+		Halt the position by adjusting the &magnitude to match the position of the
+		offset.
+		"""
+		self.magnitude = self.offset
+
+	def invert(self):
+		"""
+		Invert the position; causes the direction to change.
+		"""
+		self.datum += self.magnitude
+		self.offset = -self.offset
+		self.magnitude = -self.magnitude
+
 	def contract(self, offset, quantity):
 		"""
 		Adjust, decrease, the magnitude relative to a particular offset.
@@ -258,6 +338,14 @@ class Position(object):
 			return 1
 		else:
 			return 0 # within bounds
+
+	def compensate(self):
+		r = self.relation()
+		if r == 1:
+			self.magnitude = self.offset
+		elif r == -1:
+			self.datum += self.offset
+			self.offset = 0
 
 	def snapshot(self):
 		"""

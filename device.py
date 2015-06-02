@@ -16,6 +16,7 @@ import functools
 import fcntl
 import tty
 import termios
+import itertools
 
 from . import core
 from . import palette
@@ -27,23 +28,25 @@ escape_sequence = b'\x1b['
 
 # Part of the initial escape.
 separator = b';'
-terminator = b'm'
 
 reset = b'0'
 select_foreground = b'38;5'
 select_background = b'48;5'
+select_foreground_rgb = b'38;2'
+select_background_rgb = b'48;2'
 
 # Pairs are of the form: (Initiate, Terminate)
 style_codes = {
 	'bold': (b'1', b'22'),
+	'feint': (b'2', b'22'),
 	'italic': (b'3', b'23'),
 	'underline': (b'4', b'24'),
-	'dim': (b'2', b'22'),
+	'double-underline': (b'21', b'24'),
 	'blink': (b'5', b'25'),
-	'reverse': (b'7', b'7'),
-	'cross': (b'9', b'29'),
 	'rapid': (b'6', b'25'),
-	'conceal': (b'8', b'28'),
+	'reverse': (b'7', b'27'),
+	'invisible': (b'8', b'28'),
+	'cross': (b'9', b'29'),
 }
 
 zero = core.Modifiers.construct()
@@ -54,6 +57,7 @@ escape_codes = {
 	'\t': core.Character(('control', '\t', 'tab', core.Modifiers.construct(meta=True))),
 	'[Z': core.Character(('control', '[Z', 'tab', core.Modifiers.construct(shift=True))),
 	'[Z': core.Character(('control', '[Z', 'tab', core.Modifiers.construct(shift=True, meta=True))),
+	'OM': core.Character(('control', 'OM', 'enter', zero)),
 
 	'\x7f': core.Character(('delta', '\x7f', 'delete', core.Modifiers.construct(meta=True))),
 	'\b': core.Character(('delta', '\b', 'backspace', core.Modifiers.construct(meta=True))),
@@ -70,7 +74,6 @@ escape_codes = {
 	'OB': core.Character(('navigation', 'OB', 'down', zero)),
 	'OC': core.Character(('navigation', 'OC', 'right', zero)),
 	'OD': core.Character(('navigation', 'OD', 'left', zero)),
-	'OM': core.Character(('navigation', 'OM', 'enter', zero)),
 
 	'[H': core.Character(('navigation', '[H', 'home', zero)),
 	'[F': core.Character(('navigation', '[F', 'end', zero)),
@@ -91,6 +94,9 @@ escape_codes = {
 	'[24~': core.Character(('function', '[24~', 12, zero)),
 	'[29~': core.Character(('function', '[29~', 'applications', zero)),
 	'[34~': core.Character(('function', '[34~', 'windows', zero)),
+
+	'[200~': core.Character(('paste', '[200~', 'start', zero)),
+	'[201~': core.Character(('paste', '[201~', 'stop', zero)),
 }
 del zero
 
@@ -320,10 +326,23 @@ class Display(object):
 	def caret_show(self):
 		return self.escape_sequence + b'[?12l' + self.escape_sequence + b'[?25h'
 
+	def disable_line_wrap(self):
+		return self.escape_sequence + b'?7l'
+
+	def enable_line_wrap(self):
+		return self.escape_sequence + b'?7h'
+
 	def print(self, text):
 		return self.encode(text)
 
-	def style(self, text, styles = (), color = None):
+	@functools.lru_cache(32)
+	def color_string(self, rgb):
+		r = (rgb >> 16) & 0xFF
+		g = (rgb >> 8) & 0xFF
+		b = (rgb >> 0) & 0xFF
+		return b';'.join(map(self.encode, (r, g, b)))
+
+	def style(self, text, styles = (), color = None, background = None):
 		"""
 		Style the text for printing according to the given style set and color.
 
@@ -335,21 +354,36 @@ class Display(object):
 		if color is None and not styles:
 			return txt
 
-		prefix = b''
+		prefix = []
 		suffix = b''
 
 		if styles:
-			prefix += b''.join([self.escape(b'm', style_codes[x][0]) for x in styles])
-			suffix += b''.join([self.escape(b'm', style_codes[x][1]) for x in styles])
+			prefix.extend([style_codes[x][0] for x in styles])
 
 		if color is not None:
 			translation = palette.translate(color)
 			strcode = palette.code_string(translation)
+			prefix.extend((select_foreground, strcode))
+			#prefix += self.escape(b'm', select_foreground_rgb, self.color_string(color))
 
-			prefix += self.escape(b'm', select_foreground, strcode)
+		if background is not None:
+			translation = palette.translate(background)
+			strcode = palette.code_string(translation)
+			prefix.extend((select_background, strcode))
+			#prefix += self.escape(b'm', select_background, strcode)
+			#prefix += self.escape(b'm', select_background_rgb, self.color_string(color))
+
+		if prefix:
+			prefix_bytes = self.escape(b'm', *prefix)
 			suffix += self.escape(b'm', reset)
 
-		return prefix + txt + suffix
+		return prefix_bytes + txt + suffix
+
+	def renderline(self, seq, map = itertools.starmap):
+		"""
+		Apply the &style method to a sequence joining the results into a single string.
+		"""
+		return b''.join(map(self.style, seq))
 
 	def backspace(self, times=1):
 		"""

@@ -199,6 +199,8 @@ def index():
 
 if __name__ == '__main__':
 	import sys
+	from . import device
+	d = device.Display('utf-8')
 	# render a palette to the screen
 	escape = '\x1b['.__add__
 
