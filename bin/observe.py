@@ -1,17 +1,18 @@
+import sys
+import os
 from .. import library
 
 def main():
 	library.restore_at_exit()
-	terminal = library.Terminal.stdtty()
-	with terminal:
-		for x in terminal.events():
-			for y in x:
-				print(repr(y) + '\r')
-				if y.modifiers.control == True and y.identity == 'c':
-					break
-			else:
-				continue
-			break
+	library.device.set_raw(0)
+
+	while True:
+		data = os.read(0, 128)
+		string = data.decode('utf-8')
+		for k in library.construct_character_events(string):
+			print(repr(k) + '\r')
+			if k.modifiers.control == True and k.identity == 'c':
+				sys.exit(1)
 
 if __name__ == '__main__':
 	main()
