@@ -65,6 +65,7 @@ def test_position(test):
 	test/p.magnitude == 9
 	test/p.snapshot() == (10, 9, 19)
 
+	return
 	p.contract(-1, -11) # negative contractions expand
 	test/p.snapshot() == (10, 20, 30)
 
@@ -74,6 +75,34 @@ def test_position(test):
 	# again, but without the change in offset
 	p.expand(35, 5)
 	test/p.snapshot() == (10, 25, 40)
+
+def test_Line_offset(test):
+	l = library.Line()
+
+	# one-to-one mapping
+	l.update([("foo",), ("bar",), (" and some more",)])
+	for x in range(6):
+		xo, = l.offset(x)
+		test/xo == x
+	test/list(l.offset(*range(6))) == list(range(6))
+
+	# empty line
+	l.update([("",)])
+	xo, = l.offset(0)
+	test/xo == 0
+
+	# wide characters
+	l.update([("林花謝了春紅",)])
+	for x in range(6):
+		xo, = l.offset(x)
+		test/xo == (x*2)
+	l.update([("f林o花謝了春紅",)])
+	xo, = l.offset(2)
+	test/xo == 3
+	xo, = l.offset(3)
+	test/xo == 4
+	xo, = l.offset(4)
+	test/xo == 6
 
 if __name__ == '__main__':
 	import sys; from ...development import libtest

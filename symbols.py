@@ -3,6 +3,7 @@ Dictionaries containing various unicode symbols for display purposes.
 
 This module will always be a *small* subset of unicode characters.
 """
+
 math = {
 	'divison': '÷',
 	'multiplication': '×',
@@ -18,6 +19,18 @@ math = {
 	'summation': '∑',
 	'infinity': '∞',
 	'differential': '𝜕',
+}
+
+development = {
+	'branch': '\uE0A0', # 
+	'line-number': '\uE0A1', # 
+	'locked': '\uE0A2', # 
+
+	'arrowhead-block-right': '\uE0B0', # 
+	'arrowhead-block-left': '\uE0B2', # 
+
+	'arrowhead-line-right': '\uE0B1', # 
+	'arrowhead-line-left': '\uE0B3', # 
 }
 
 logic = {
@@ -38,16 +51,30 @@ arrows = {
 	'down': '↓',
 }
 
-wedge = {
+wedges = {
 	'up': '∧',
 	'down': '∨',
 	'left': '<',
 	'right': '>',
 }
 
+marks = {
+	'x': '✗',
+	'check': '✓',
+	'bullet': '•',
+	'triangle': '‣',
+	'checkbox': '❏',
+}
+
+editing = {
+	'scissors': '✂',
+	'pencil': '✎',
+	'envelope': '✉',
+}
+
 modifiers = {
 	'capslock': '\u21EA', # ⇪
-	'numlock':'\u21ED', # ⇭
+	'numlock': '\u21ED', # ⇭
 	'shift': '\u21E7', # ⇧
 	'control': '\u2303', # ⌃
 	'option': '\u2325', # ⌥
@@ -64,13 +91,13 @@ whitespace = {
 	'tab': '\u21E5', # ⇥
 	'space': '\u2423', # ␣
 	'return': '\u23CE', # ⏎
-	'enter': '\u2324', # ⌤ 
+	'enter': '\u2324', # ⌤
 }
 
 manipulations = {
 	'backspace': '\u232B', # ⌫
 	'delete': '\u2326', # ⌦
-	'clear':'\u2327', # ⌧ 
+	'clear': '\u2327', # ⌧
 }
 
 navigation = {
@@ -89,19 +116,41 @@ corners = {
 	'top-right': '┐',
 }
 
+rounds = {
+	'bottom-left': '╰',
+	'bottom-right': '╯',
+	'top-left': '╭',
+	'top-right': '╮',
+}
+
+double = {
+	'bottom-left': '╚',
+	'bottom-right': '╝',
+	'top-left': '╔',
+	'top-right': '╗',
+	'vertical': '║',
+	'horizontal': '═',
+}
+
 intersections = {
 	'top': '┬',
 	'bottom': '┴',
 	'full': '┼',
+	'left': '├',
+	'right': '┤',
 }
 
 lines = {
 	'horizontal': '─',
 	'vertical': '│',
-	'vertical-heavy': '┃',
 	'diagonal-right': '╱',
-	'diagonal-left':  '╲',
+	'diagonal-left': '╲',
 	'diagonal-cross': '╳',
+}
+
+dotted = {
+	'horizontal': '┄',
+	'vertical': '┆',
 }
 
 # used for interactive annotations
@@ -177,11 +226,11 @@ combining = {
 		't': '\u036C',
 		'v': '\u036D',
 		'x': '\u036E',
-		'g': '\u1DDB',	
-		'k': '\u1DDC',	
-		'l': '\u1DDD',	
-		'L': '\u1DDE',	
-		'm': '\u1DDF',	
+		'g': '\u1DDB',
+		'k': '\u1DDC',
+		'l': '\u1DDD',
+		'L': '\u1DDE',
+		'm': '\u1DDF',
 		'n': '\u1DE0',
 		'N': '\u1DE1',
 		'R': '\u1DE2',
@@ -209,8 +258,64 @@ combining = {
 	},
 }
 
+greek = dict(
+	lower = {
+		'alpha': 'α',
+		'beta': 'β',
+		'gamma': 'γ',
+		'delta': 'δ',
+		'epsilon': 'ε',
+		'zeta': 'ζ',
+		'eta': 'η',
+		'theta': 'θ',
+		'iota': 'ι',
+		'kappa': 'κ',
+		'lambda': 'λ',
+		'mu': 'μ',
+		'nu': 'ν',
+		'xi': 'ξ',
+		'omicron': 'ο',
+		'pi': 'π',
+		'rho': 'ρ',
+		'sigma': 'σ',
+		'tau': 'τ',
+		'upsilon': 'υ',
+		'phi': 'φ',
+		'chi': 'χ',
+		'psi': 'ψ',
+		'omega': 'ω',
+	},
+
+	upper = {
+		'alpha': 'Α',
+		'beta': 'Β',
+		'gamma': 'Γ',
+		'delta': 'Δ',
+		'epsilon': 'Ε',
+		'zeta': 'Ζ',
+		'eta': 'Η',
+		'theta': 'Θ',
+		'iota': 'Ι',
+		'kappa': 'Κ',
+		'lambda': 'Λ',
+		'mu': 'Μ',
+		'nu': 'Ν',
+		'xi': 'Ξ',
+		'omicron': 'Ο',
+		'pi': 'Π',
+		'rho': 'Ρ',
+		'sigma': 'Σ',
+		'tau': 'Τ',
+		'upsilon': 'Υ',
+		'phi': 'Φ',
+		'chi': 'Χ',
+		'psi': 'Ψ',
+		'omega': 'Ω',
+	}
+)
+
 import itertools
-aggregate = dict(itertools.chain(
+keyboard = dict(itertools.chain(
 	modifiers.items(),
 	control.items(),
 	whitespace.items(),

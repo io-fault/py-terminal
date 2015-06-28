@@ -118,7 +118,7 @@ class Modifiers(int):
 
 class Point(tuple):
 	"""
-	A pair of integers describing a position on screen.
+	A pair of integers describing a position on screen; units are in "cells".
 	The point may be relative or absolute; the usage context defines its meaning.
 	"""
 	__slots__ = ()
@@ -183,6 +183,27 @@ class Position(object):
 		self.datum = datum
 		self.magnitude = magnitude
 		self.offset = offset
+
+	def limit(self, minimum, maximum):
+		"""
+		Apply the minimum and maximum limits to the Position's absolute values.
+		"""
+		l = [
+			minimum if x < minimum else (
+				maximum if x > maximum else x
+			)
+			for x in self.snapshot()
+		]
+		self.restore(l)
+
+	def snapshot(self):
+		"""
+		Calculate and return the absolute position as a triple.
+		"""
+		start = self.datum
+		offset = start + self.offset
+		stop = start + self.magnitude
+		return (start, offset, stop)
 
 	def restore(self, snapshot):
 		"""
@@ -289,7 +310,7 @@ class Position(object):
 
 	def start(self):
 		"""
-		Start the position by adjusting the &datum to match the positionf of the &offset.
+		Start the position by adjusting the &datum to match the position of the &offset.
 		The magnitude will also be adjust to maintain its position.
 		"""
 		change = self.reposition()
@@ -310,16 +331,51 @@ class Position(object):
 		self.offset = -self.offset
 		self.magnitude = -self.magnitude
 
+	def page(self, quantity = 0):
+		"""
+		Adjust the position's datum to be at the magnitude's position according
+		to the given quantity. Essentially, this is used to "page" the position;
+		a given quantity selects how far forward or backwards the origin is sent.
+		"""
+		self.datum += (self.magnitude * quantity)
+
 	def contract(self, offset, quantity):
 		"""
 		Adjust, decrease, the magnitude relative to a particular offset.
 		"""
-		self.magnitude -= quantity # positives decrement, and negatives expand
+		if offset < 0:
+			self.datum -= quantity
+		elif offset <= self.magnitude:
+			self.magnitude -= quantity # positives decrement, and negatives expand
 
 		# if the contraction occurred at or before the position,
 		# move the offset back as well.
 		if offset <= self.offset:
 			self.offset -= quantity
+
+	def changed(self, offset, quantity):
+		"""
+		Adjust the position to accomodate for a change that occurred
+		to the reference space--insertion or removal.
+
+		Similar to &contract, but attempts to maintain &offset when possible,
+		and takes an absolute offset instead of a relative one.
+		"""
+		roffset = offset - self.datum
+
+		if roffset < 0:
+			self.datum += quantity
+			return
+		elif roffset > self.magnitude:
+			return
+
+		self.magnitude += quantity
+
+		# if the contraction occurred at or before the position,
+		# move the offset back as well in order to keep the position
+		# consistent.
+		if roffset <= self.offset:
+			self.offset += quantity
 
 	def expand(self, offset, quantity):
 		"""
@@ -347,14 +403,9 @@ class Position(object):
 			self.datum += self.offset
 			self.offset = 0
 
-	def snapshot(self):
-		"""
-		Calculate and return the absolute position as a triple.
-		"""
-		start = self.datum
-		offset = start + self.offset
-		stop = start + self.magnitude
-		return (start, offset, stop)
+	def slice(self, adjustment = 0, step = 1, Slice = slice):
+		start, pos, stop = map(adjustment.__add__, self.snapshot())
+		return Slice(start, stop, step)
 
 class Vector(object):
 	"""

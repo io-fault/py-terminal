@@ -31,6 +31,7 @@ import itertools
 
 from . import core
 from . import device
+from .text import cells
 
 Character = core.Character
 Modifiers = core.Modifiers
@@ -39,9 +40,36 @@ Position = core.Position
 Vector = core.Vector
 construct_character_events = device.construct_character_events
 
+pastels = {
+	'purple': 0x875fff,
+	'blue': 0x0087d7,
+	'green': 0x77DD77,
+	'magenta': 0xF49AC2,
+	'orange': 0xFFB347,
+	'pink': 0xFFD1DC,
+	'violet': 0xCB99C9,
+	'yellow': 0xFDFD96,
+	'red': 0xFF6961,
+	'gray': 0xCFCFC4,
+	#'blue-green': 0x0D98BA,
+	#'pink': 0xDEA5A4, dark pink
+	#'red': 0xD75F5F, dark red
+}
+
+theme = {
+	'number': 'blue',
+	'text': 'gray',
+	'core': 'purple',
+	'date': 'yellow',
+	'time': 'red',
+	'timestamp': 'orange',
+}
+
 def restore_at_exit(path = device.path):
 	"""
 	Save the Terminal state and register an atexit handler to restore it.
+
+	Called once when the process is started to restore the terminal state.
 	"""
 	import atexit
 
@@ -105,6 +133,37 @@ def scale(n, target = (1, 100), origin = (0, 0xFFFFFFFF), divmod = divmod):
 	# dx + N to make N relative to beginning of the destination range
 	return dx + n, r, sb
 
+def offsets(text_sequence, *indexes, iter=iter, len=len, next=next, cells=cells):
+	"Get the cell offset of the given character indexes."
+	offset = 0
+	nc = 0
+	noffset = 0
+
+	i = iter(text_sequence or (('',),))
+	x = next(i)
+	t = x[0]
+
+	for y in indexes:
+		if y == 0:
+			yield 0
+			continue
+		while x is not None:
+			chars = len(t)
+			noffset = offset + chars
+
+			if noffset >= y:
+				# found it
+				yield nc + cells(t[:y-offset])
+				break
+
+			nc += cells(t)
+			offset = noffset
+			x = next(i)
+			t = x[0]
+		else:
+			# index out of range
+			raise IndexError(y)
+
 Display = device.Display
 class Area(Display):
 	"""
@@ -127,7 +186,8 @@ class Area(Display):
 		init = self.seek((0, 0))
 
 		clearline = self.erase(self.width)
-		bol = self.seek_horizontal_relative(-self.width)
+		#bol = self.seek_horizontal_relative(-(self.width-1))
+		bol = b''
 		nl = b'\n'
 
 		return init + (self.height * (clearline + bol + nl))
@@ -165,7 +225,7 @@ class Line(object):
 
 	def __init__(self, text = ()):
 		self.text = text
-		self.length = sum(map(len, (x[0] for x in self.text)))
+		self.length = sum(map(cells, (x[0] for x in self.text)))
 		self.clipping = (0, None)
 		self.change = self.clipped = 0
 		self.display = tuple(text)
@@ -189,7 +249,7 @@ class Line(object):
 		self.change = (self.length - current_length)
 		return self
 
-	def clip(self, offset, width, len = len, range = range):
+	def clip(self, offset, width, len=len, range=range, cells=cells):
 		"""
 		Clip the text according to the given width and offset.
 		Used to prepare the (display) line for rendering.
@@ -197,19 +257,21 @@ class Line(object):
 		Can be used multiple times in order to reflect area changes.
 		"""
 		self.clipping = (offset, width)
+		text = self.text
 
 		if width is None:
 			self.clipped = 0
-			self.display = tuple(self.text)
-			self.length = sum(map(len, (x[0] for x in self.text)))
+			self.display = tuple(text)
+			self.length = sum(map(cells, (x[0] for x in self.text)))
 			return self
 
 		s = 0
 		i = 0
 		l = 0
 
-		for i in range(len(self.text)):
-			l = len(self.text[i][0])
+		ri = range(len(text))
+		for i in ri:
+			l = cells(text[i][0])
 			s += l
 			if s > width:
 				break
@@ -217,16 +279,17 @@ class Line(object):
 			# text length does not exceed width
 			self.clipped = 0
 			self.length = s
+			self.display = tuple(text)
 			return self
 
 		# clipping occurred, so length is the full width
 		self.length = width
 
 		# trim the excess off of the i'th element
-		trim, *styling = self.text[i]
+		trim, *styling = text[i]
 		excess = s - width
 
-		t = list(self.text[:i])
+		t = list(text[:i])
 		trimmed = trim[:len(trim)-excess]
 
 		styling.insert(0, trimmed)
@@ -359,11 +422,11 @@ class View(object):
 		for i in range(start, end):
 			yield self.sequence[i]
 
-	def clear(self):
+	def clear(self, start = 0, stop = None):
 		"""
 		Clear the view by removing the contents of the lines.
 		"""
-		for x in self.lines(0):
+		for x in self.lines(start, stop):
 			x.update(())
 
 	def adjust(self, point, dimensions):
@@ -377,10 +440,6 @@ class View(object):
 
 		w, h = dimensions
 
-		# clip lines to width
-		for x in self.lines(0):
-			x.clip(0, w)
-
 		d = h - self.height
 		if d < 0:
 			del self.sequence[h:]
@@ -389,6 +448,10 @@ class View(object):
 				self.sequence.append(self.Line())
 
 		self.width, self.height = w, h
+
+		# clip lines to width
+		for x in self.lines(0):
+			x.clip(0, w)
 
 	def update(self, start, stop, lines):
 		"""

@@ -307,6 +307,9 @@ class Display(object):
 	This currently does not use the termcap database to shape the rendered escape sequences,
 	and is primarily supporting xterm and xterm-like terminal implementations.
 	"""
+	control_mapping = {chr(i): chr(0x2400 + i) for i in range(32)}
+	control_table = str.maketrans(control_mapping)
+
 	escape_character = b'\x1b'
 	escape_sequence = b'\x1b['
 	join = b';'.join
@@ -332,8 +335,8 @@ class Display(object):
 	def enable_line_wrap(self):
 		return self.escape_sequence + b'?7h'
 
-	def print(self, text):
-		return self.encode(text)
+	def print(self, text, control_map = control_table):
+		return self.encode(text.translate(control_map))
 
 	@functools.lru_cache(32)
 	def color_string(self, rgb):
@@ -342,7 +345,7 @@ class Display(object):
 		b = (rgb >> 0) & 0xFF
 		return b';'.join(map(self.encode, (r, g, b)))
 
-	def style(self, text, styles = (), color = None, background = None):
+	def style(self, text, styles = (), color = None, background = None, control_map = control_table):
 		"""
 		Style the text for printing according to the given style set and color.
 
@@ -350,7 +353,7 @@ class Display(object):
 		&color is a 24-bit color value that is translated to a terminal color code.
 		"""
 		# XXX: escape newlines and low-ascii?
-		txt = self.encode(text)
+		txt = self.encode(text.translate(control_map))
 		if color is None and not styles:
 			return txt
 
