@@ -271,7 +271,7 @@ def construct_character_events(data, escape = '\x1b'):
 		# Escape Code to map control characters.
 
 		if first > 0:
-			events = escaped_events(data[:first])
+			events = [escaped_events(data[:first])]
 		else:
 			events = []
 
@@ -497,6 +497,9 @@ class Display(object):
 
 	def restore_screen(self):
 		return self.escape(b'?1049l')
+
+	def enable_mouse(self):
+		return self.escape(b'?1002h') + self.escape(b'?1006h')
 
 	def deflate_horizontal(self, size):
 		return self.escape(b'P', self.encode(size))

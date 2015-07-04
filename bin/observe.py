@@ -5,6 +5,8 @@ from .. import library
 def main():
 	library.restore_at_exit()
 	library.device.set_raw(0)
+	d = library.Display()
+	os.write(0, d.enable_mouse())
 
 	while True:
 		data = os.read(0, 128)
