@@ -344,13 +344,14 @@ class Position(object):
 		Adjust, decrease, the magnitude relative to a particular offset.
 		"""
 		if offset < 0:
+			# before range; offset is relative to datum, so only adjust datum
 			self.datum -= quantity
 		elif offset <= self.magnitude:
-			self.magnitude -= quantity # positives decrement, and negatives expand
-
-		# if the contraction occurred at or before the position,
-		# move the offset back as well.
-		if offset <= self.offset:
+			# within range, adjust size and position
+			self.magnitude -= quantity
+			self.offset -= quantity
+		else:
+			# outside of range, so only adjust offset
 			self.offset -= quantity
 
 	def changed(self, offset, quantity):
