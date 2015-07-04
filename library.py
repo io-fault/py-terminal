@@ -22,7 +22,6 @@ import tty
 import termios
 import fcntl
 import array
-import locale
 import contextlib
 import collections
 import operator
@@ -43,6 +42,8 @@ construct_character_events = device.construct_character_events
 pastels = {
 	'purple': 0x875fff,
 	'blue': 0x0087d7,
+	#'cyan': 0x6d889a, metallic green
+	'cyan': 0x6b9aea,
 	'green': 0x77DD77,
 	'magenta': 0xF49AC2,
 	'orange': 0xFFB347,

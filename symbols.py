@@ -4,6 +4,20 @@ Dictionaries containing various unicode symbols for display purposes.
 This module will always be a *small* subset of unicode characters.
 """
 
+# very detailed progress bar
+progress = ' ▏▎▎▍▌▋▊▉█'
+# express height
+bars = ' ▁▂▃▄▅▆▇█',
+quadrants = '▖▘▝▗',
+wands = "/-\\|"
+
+suits = {
+	'spades': '♠',
+	'hearts': '♥',
+	'diamonds': '♦',
+	'clubs': '♣',
+}
+
 math = {
 	'divison': '÷',
 	'multiplication': '×',
