@@ -212,6 +212,7 @@ if __name__ == '__main__':
 	bg = '48;5;'
 
 	normal = escape(bg) + '0m'
+	fgnormal = escape(fg) + '16m'
 
 	args = sys.argv[1:]
 	if args:
@@ -228,8 +229,9 @@ if __name__ == '__main__':
 					i = i + 1
 					v, c = color_palette(r, g, b)
 					t = hex(ri[c])[2:].rjust(6, '0')
+					t += '(' + str(c).rjust(3, ' ') + ')'
 					sys.stderr.write((escape(bg) + str(c) + 'm     ' + normal + ': ' + t.rjust(3, ' ') + ' '))
-					if i > 12:
+					if i > 5:
 						sys.stderr.write('\n')
 						i = 0
 		sys.stderr.write('\n')
@@ -237,7 +239,9 @@ if __name__ == '__main__':
 			i = i + 1
 			v, c = gray_palette(g)
 			t = hex(ri[c])[2:].rjust(6, '0')
+			t += '(' + str(c).rjust(3, ' ') + ')'
 			sys.stderr.write((escape(bg) + str(c) + 'm     ' + normal + ': ' + t.rjust(3, ' ') + ' '))
-			if i > 12:
+			if i > 5:
 				sys.stderr.write('\n')
 				i = 0
+		sys.stderr.write('\n')
