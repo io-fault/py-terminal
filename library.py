@@ -216,9 +216,9 @@ class Area(Display):
 	def translate(spoint, point):
 		return (point[0] + spoint[0], point[1] + spoint[1])
 
-class Line(object):
+class Unit(object):
 	"""
-	A line be drawn on an area; styled and width clipping functionality.
+	A unit of text be drawn on an area; styled and width clipping functionality.
 
 	Changes in text length is tracked so that proper erase instructions can be generated.
 	"""
@@ -230,6 +230,14 @@ class Line(object):
 		self.clipping = (0, None)
 		self.change = self.clipped = 0
 		self.display = tuple(text)
+
+	def __iter__(self, iter=iter):
+		"Returns an iterator to the display fragments."
+		return iter(self.display)
+
+	def __getitem__(self, item):
+		"Get a portion of the Unit respecting the clipping of the unit."
+		pass
 
 	def clear(self):
 		"""
@@ -324,6 +332,7 @@ class Line(object):
 			self.change = 0
 
 		return data
+Line = Unit # Compat
 
 class Overwrite(object):
 	"""
@@ -424,9 +433,7 @@ class View(object):
 			yield self.sequence[i]
 
 	def clear(self, start = 0, stop = None):
-		"""
-		Clear the view by removing the contents of the lines.
-		"""
+		"Clear the view by removing the contents of the lines."
 		for x in self.lines(start, stop):
 			x.update(())
 
