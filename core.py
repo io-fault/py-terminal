@@ -8,6 +8,135 @@ import unicodedata
 __control_requests__ = []
 __control_residual__ = []
 
+class Point(tuple):
+	"""
+	A pair of integers describing a position on screen; units are in "cells".
+	The point may be relative or absolute; the usage context defines its meaning.
+	"""
+	__slots__ = ()
+
+	@property
+	def x(self):
+		return self[0]
+
+	@property
+	def y(self):
+		return self[1]
+
+	@classmethod
+	def create(Class, *points):
+		return Class(points)
+	construct = create
+
+class Modifiers(int):
+	"""
+	Bitmap of modifiers with an single imaginary numeric modifier.
+	"""
+	__slots__ = ()
+
+	sequence = (
+		'control',
+		'shift',
+		'meta',
+	)
+	bits = {
+		k: 1 << i for k, i in zip(sequence, range(len(sequence)))
+	}
+
+	@property
+	def none(self):
+		return not (self & 0b111)
+
+	@property
+	def control(self):
+		return (self & 0b001)
+
+	@property
+	def meta(self):
+		"Often the alt or option key."
+		return (self & 0b010)
+
+	@property
+	def shift(self):
+		"""
+		Shift key was detected.
+		"""
+		return (self & 0b100)
+
+	@property
+	def imaginary(self, position=len(sequence)):
+		"""
+		An arbitrary number designating an imaginary modifier.
+		Defaults to zero.
+		"""
+		return self >> position
+
+	@classmethod
+	@functools.lru_cache(9)
+	def construct(Class, bits = 0, control = False, meta = False, shift = False, imaginary = 0):
+		mid = imaginary << 3
+		mid |= bits
+
+		if control:
+			mid |= Class.bits['control']
+
+		if meta:
+			mid |= Class.bits['meta']
+
+		if shift:
+			mid |= Class.bits['shift']
+
+		return Class(mid)
+
+class Mouse(object):
+	"""
+	Mouse state management for constructing simple gestures.
+
+	Primarily used to construct click events from narrow mouse press-release windows.
+	"""
+
+	def __init__(self):
+		self.state = {}
+		self.timestamps = {}
+		self.drag = None
+		self.last = None
+
+	def process(self, when, event):
+		if event.type == 'mouse':
+
+			me = event.identity
+			act = me[-1] # act: 1 == press, -1 == release, 0 move/na
+
+			self.state[me[1]] += act
+			rv = self.state[me[1]]
+			if rv:
+				# pressed
+				if act:
+					assert rv > 1
+					self.timestamps[me[1]].append(when)
+					self.drag = event
+				else:
+					# drag continuation
+					self.last = (when, event)
+					return event
+			else:
+				assert rv == 0
+				start = self.timestamps.pop(me[1])
+				stop = when
+				measure = start.measure(stop)
+				start_event = self.drag
+				stop_event = event
+				self.drag = None
+		elif event.type == 'control':
+			# abort drag
+			if self.drag is not None:
+				if event.identity == 'escape':
+					# abort drag
+					return Character(('mouse', None, (), core.Modifiers(0)))
+				elif self.last[0].measure(when).exceeds(second=30):
+					# timeout drag
+					pass
+
 class Character(tuple):
 	"""
 	A single characeter from input event from a terminal device.
@@ -19,6 +148,7 @@ class Character(tuple):
 		'manipulation',
 		'navigation',
 		'function',
+		'mouse',
 	)
 
 	@property
@@ -56,84 +186,9 @@ class Character(tuple):
 
 		Items are zero if there is no combining character at that index.
 		"""
+		global unicodedata
+
 		return map(unicodedata.combining, self[1])
-
-class Modifiers(int):
-	"""
-	Bitmap of modifiers with an single imaginary numeric modifier.
-	"""
-	sequence = (
-		'control',
-		'shift',
-		'meta',
-	)
-	bits = {
-		k: 1 << i for k, i in zip(sequence, range(len(sequence)))
-	}
-
-	@property
-	def none(self):
-		return not (self & 0b111)
-
-	@property
-	def control(self):
-		return (self & 0b001)
-
-	@property
-	def meta(self):
-		"Often the alt or option key."
-		return (self & 0b010)
-
-	@property
-	def shift(self):
-		"""
-		Shift key was detected.
-		"""
-		return (self & 0b100)
-
-	@property
-	def imaginary(self):
-		"""
-		An arbitrary number designating an imaginary modifier.
-		Defaults to zero.
-		"""
-		return self >> 3
-
-	@classmethod
-	@functools.lru_cache(9)
-	def construct(Class, bits = 0, control = False, meta = False, shift = False, imaginary = 0):
-		mid = imaginary << 3
-		mid |= bits
-
-		if control:
-			mid |= Class.bits['control']
-
-		if meta:
-			mid |= Class.bits['meta']
-
-		if shift:
-			mid |= Class.bits['shift']
-
-		return Class(mid)
-
-class Point(tuple):
-	"""
-	A pair of integers describing a position on screen; units are in "cells".
-	The point may be relative or absolute; the usage context defines its meaning.
-	"""
-	__slots__ = ()
-
-	@property
-	def x(self):
-		return self[0]
-
-	@property
-	def y(self):
-		return self[1]
-
-	@classmethod
-	def construct(Class, *points):
-		return Class(points)
 
 class Position(object):
 	"""

@@ -21,6 +21,10 @@ import itertools
 from . import core
 from . import palette
 
+@functools.lru_cache(16)
+def point(x, y, Type=core.Point):
+	return Type((x,y))
+
 path = '/dev/tty'
 
 escape_character = b'\x1b'
@@ -245,14 +249,55 @@ def literal_events(data):
 		for x in data
 	)
 
+@functools.lru_cache(16) # optimize scrolls
+def mouse(string):
+	"Construct a raw mouse event."
+
+	global point
+	buttons = {
+		64: 'scroll-up',
+		65: 'scroll-down',
+		-1: 'scroll-left',
+		-2: 'scroll-right',
+		0: 'primary',
+		2: 'context',
+	}
+
+	data = string[2:-1]
+	mbutton, mx, my = map(int, data.split(';'))
+
+	if mbutton < 32:
+		if string[-1] == 'M':
+			act = 1 # press
+		elif string[-1] == 'm':
+			act = -1 # release
+	elif mbutton < 64:
+		# drag
+		mbutton -= 32
+		act = 0
+	else:
+		# activate vs press/release
+		act = 0
+
+	return core.Character((
+		'mouse', string,
+		(point(mx, my), buttons.get(mbutton, mbutton), act),
+		core.Modifiers(0),
+	))
+
 def escaped_events(string, Character = core.Character):
 	"""
 	Resolve the Key instance for the given string instance.
 	"""
+
 	if string in escape_codes:
 		return escape_codes[string]
 	else:
-		return Character(('escaped', string, string, core.Modifiers(0)))
+		if string.startswith('[<'):
+			# mouse event
+			return mouse(string)
+		else:
+			return Character(('escaped', string, string, core.Modifiers(0)))
 
 def construct_character_events(data, escape = '\x1b'):
 	"""
