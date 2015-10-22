@@ -15,6 +15,17 @@ and store and restore the settings themselves.
 The control portion keeps state about the process-local controller of the terminal and any
 requests for control. This is a local version of the process signals used by sessions to
 manage terminal access for concurrent jobs.
+
+Coloring:
+
+	/textcolor
+		Foreground color.
+	/cellcolor
+		Uppermost background color. (opacity mixing?)
+	/foreground
+		Default text color.
+	/background
+		Default cell color.
 """
 import sys
 import os
@@ -76,9 +87,15 @@ def restore_at_exit(path = device.path):
 
 	with open(path, mode='r+b') as tty:
 		def _restore_terminal(path = path, terminal_state = termios.tcgetattr(tty.fileno())):
+			d = device.Display()
+
 			# in case cursor was hidden
 			with open(path, mode='r+b') as f:
-				f.write(b'\x1b[?12l\x1b[?25h') # normalize cursor
+				# bit of a hack and assumes no other state changes need to occur.
+				resets = b'\x1b[?12l\x1b[?25h' # normalize cursor
+				resets += d.disable_mouse()
+				resets += d.enable_line_wrap()
+				f.write(resets)
 				termios.tcsetattr(f.fileno(), termios.TCSADRAIN, terminal_state)
 
 	atexit.register(_restore_terminal)
@@ -211,6 +228,13 @@ class Area(Display):
 		"""
 		return self.seek((0, self.height-1))
 
+	def erase(self, times=1, background=None):
+		if background is None:
+			return super().erase(times)
+		else:
+			# fill with colored spaces if the background is not None.
+			return self.style(' ' * times, styles=(), cellcolor=background)
+
 	@staticmethod
 	@functools.lru_cache(32)
 	def translate(spoint, point):
@@ -244,9 +268,11 @@ class Unit(object):
 		Clear the line leaving the change data in order to allow subsequent renders to
 		properly clear excess and outdated display.
 		"""
+
 		change = self.change - self.length
 		self.__init__()
 		self.change = change
+
 		return self
 
 	def update(self, text):
@@ -265,6 +291,7 @@ class Unit(object):
 
 		Can be used multiple times in order to reflect area changes.
 		"""
+
 		self.clipping = (offset, width)
 		text = self.text
 
@@ -307,9 +334,10 @@ class Unit(object):
 		self.display = tuple(t)
 
 		self.clipped = excess
+
 		return self
 
-	def render(self, area, foreground = None, background = None):
+	def render(self, area, foreground=None, background=None):
 		"""
 		Render the line according to the given area.
 
@@ -318,18 +346,24 @@ class Unit(object):
 
 		If there was any noted length change, it will be cleared by &render.
 		"""
+
 		text = self.display
+		width = area.width
+		length = self.length
 
 		if text:
-			data = area.renderline(text)
+			data = area.renderline(text, background=background)
 		else:
 			data = b''
 
 		if self.change < 0:
 			# the text rendered before was longer than it is now
 			# erase the difference after drawing
-			data += area.erase(-self.change)
+			data += area.erase(-self.change, background=background)
 			self.change = 0
+		elif length < width and background is not None:
+			# fill remaining cells with background color.
+			data += area.erase(width - length, background=background)
 
 		return data
 Line = Unit # Compat
@@ -388,6 +422,8 @@ class View(object):
 		self.Line = Line
 		self.width = 0
 		self.height = 0
+
+		# Support area abstraction
 		self.erase = self.area.erase
 		self.renderline = functools.lru_cache(128)(area.renderline)
 
@@ -468,7 +504,7 @@ class View(object):
 		for x, l in zip(self.lines(start, stop), lines):
 			x.update(l)
 
-	def render(self, start = 0, stop = None):
+	def render(self, start=0, stop=None):
 		"""
 		Render all the lines in the sequence into the area.
 		"""
@@ -477,4 +513,5 @@ class View(object):
 		for x in self.sequence[start:stop]:
 			yield x.render(self, self.foreground, self.background)
 			yield a.seek_start_of_next_line()
+
 	draw = render # depracate

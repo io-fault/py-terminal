@@ -390,48 +390,82 @@ class Display(object):
 		b = (rgb >> 0) & 0xFF
 		return b';'.join(map(self.encode, (r, g, b)))
 
-	def style(self, text, styles = (), color = None, background = None, control_map = control_table):
+	def background(self, color, select_background=select_background):
+		"Change the background color."
+
+		translation = palette.translate(color)
+		strcode = palette.code_string(translation)
+
+		return (select_background, strcode)
+
+	def foreground(self, color, select_foreground=select_foreground):
+		"Change the foreground color."
+
+		translation = palette.translate(color)
+		strcode = palette.code_string(translation)
+
+		return (select_foreground, strcode)
+
+	def style(self, text, styles=(),
+			textcolor=None, cellcolor=None,
+			foreground=None,
+			background=None,
+			control_map=control_table
+		):
 		"""
 		Style the text for printing according to the given style set and color.
 
 		&styles is a set of style names to apply. The support set is listed in &style_codes.
 		&color is a 24-bit color value that is translated to a terminal color code.
 		"""
+
 		# XXX: escape newlines and low-ascii?
 		txt = self.encode(text.translate(control_map))
-		if color is None and not styles:
-			return txt
 
 		prefix = []
-		suffix = b''
+		suffix = []
+		prefix_bytes = b''
+		suffix_bytes = b''
 
 		if styles:
 			prefix.extend([style_codes[x][0] for x in styles])
 
-		if color is not None:
-			translation = palette.translate(color)
-			strcode = palette.code_string(translation)
-			prefix.extend((select_foreground, strcode))
+		if textcolor is not None:
+			prefix.extend(self.foreground(textcolor))
 			#prefix += self.escape(b'm', select_foreground_rgb, self.color_string(color))
 
-		if background is not None:
-			translation = palette.translate(background)
-			strcode = palette.code_string(translation)
-			prefix.extend((select_background, strcode))
-			#prefix += self.escape(b'm', select_background, strcode)
+			# Reset to foreground.
+			if foreground is not None:
+				suffix.extend(self.foreground(foreground))
+
+		if cellcolor is not None:
+			prefix.extend(self.background(cellcolor))
 			#prefix += self.escape(b'm', select_background_rgb, self.color_string(color))
+
+			# Reset to background.
+			if background is not None:
+				suffix.extend(self.background(background))
 
 		if prefix:
 			prefix_bytes = self.escape(b'm', *prefix)
-			suffix += self.escape(b'm', reset)
 
-		return prefix_bytes + txt + suffix
+		suffix_bytes = self.escape(b'm', reset, *suffix)
 
-	def renderline(self, seq, map = itertools.starmap):
+		return prefix_bytes + txt + suffix_bytes
+
+	def renderline(self, seq,
+			foreground=None,
+			background=None,
+			map=itertools.starmap,
+			chain=itertools.chain,
+			partial=functools.partial,
+		):
 		"""
 		Apply the &style method to a sequence joining the results into a single string.
 		"""
-		return b''.join(map(self.style, seq))
+
+		style = partial(self.style, foreground=foreground, background=background)
+		return b''.join(chain((), map(style, seq)))
 
 	def backspace(self, times=1):
 		"""
@@ -446,13 +480,13 @@ class Display(object):
 		"""
 		return b' ' * times
 
-	def erase(self, times = 1):
+	def erase(self, times=1):
 		"""
 		The 'X' terminal code.
 		"""
 		return self.escape(self.encode(times) + b'X')
 
-	def blank(self, times = 1):
+	def blank(self, times=1):
 		"""
 		The '@' terminal code.
 		"""
@@ -546,6 +580,9 @@ class Display(object):
 	def enable_mouse(self):
 		return self.escape(b'?1002h') + self.escape(b'?1006h')
 
+	def disable_mouse(self):
+		return self.escape(b'?1002l') + self.escape(b'?1006l')
+
 	def deflate_horizontal(self, size):
 		return self.escape(b'P', self.encode(size))
 
@@ -620,7 +657,7 @@ class Display(object):
 			buf += self.style(styles)
 		return buf
 
-def set_raw(fd, path = path):
+def set_raw(fd, path=path):
 	"""
 	Set raw mode and return the previous settings.
 	"""
@@ -636,13 +673,13 @@ def settings_snapshot(fd):
 	"""
 	return termios.tcgetattr(fd)
 
-def settings_restore(fd, stored_settings, path = path):
+def settings_restore(fd, stored_settings, path=path):
 	"""
 	Apply the given settings.
 	"""
 	return termios.tcsetattr(fd, termios.TCSADRAIN, stored_settings)
 
-def dimensions(fd, winsize = array.array("h", [0,0,0,0])):
+def dimensions(fd, winsize=array.array("h", [0,0,0,0])):
 	"""
 	Dimensions of the physical terminal.
 	"""
