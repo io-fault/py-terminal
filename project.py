@@ -1,9 +1,7 @@
-"""
-[ Requirements ]
-
-Mostly built-in Python modules: tty, termios, fcntl.
-"""
 abstract = 'terminal display support for character devices'
+
+# IRI based project identity. (project homepage)
+identity = 'https://fault.io/project/python/terminal'
 
 # Project name.
 name = 'terminal'
@@ -16,12 +14,7 @@ release = None # A number indicating its position in the releases of a branch. (
 study = {}
 
 # Relevant emoji or reference--URL or relative file path--to an image file.
-icon = {
-	'unicode': '💻'
-}
-
-# IRI based project identity. (project homepage)
-identity = 'https://fault.io/project/terminal/' + fork
+icon = '🖥'
 
 # Responsible Party
 controller = 'fault.io'
