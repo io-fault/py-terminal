@@ -1,6 +1,7 @@
 from .. import library
 
 def test_position(test):
+	"Needs refactoring into a set of tests."
 	p = library.Position()
 	test/p.snapshot() == (0,0,0)
 	test/p.get() == 0
@@ -60,48 +61,39 @@ def test_position(test):
 
 	p.contract(0, 1)
 	test/p.relation() == -1
-	test/p.get() == 9 # still before datum
-	test/p.offset == -1
+	test/p.get() == 8 # still before datum
+	test/p.offset == -2
 	test/p.magnitude == 9
-	test/p.snapshot() == (10, 9, 19)
+	test/p.snapshot() == (10, 8, 19)
 
-	return
-	p.contract(-1, -11) # negative contractions expand
-	test/p.snapshot() == (10, 20, 30)
-
-	p.expand(0, 5)
-	test/p.snapshot() == (10, 25, 35)
-
-	# again, but without the change in offset
-	p.expand(35, 5)
-	test/p.snapshot() == (10, 25, 40)
-
-def test_Line_offset(test):
-	l = library.Line()
+def test_offsets(test):
 
 	# one-to-one mapping
-	l.update([("foo",), ("bar",), (" and some more",)])
+	seq = [("foo",), ("bar",), (" and some more",)]
 	for x in range(6):
-		xo, = l.offset(x)
-		test/xo == x
-	test/list(l.offset(*range(6))) == list(range(6))
+		test/x == list(library.offsets(seq, x))[0]
+
+	test/list(library.offsets(seq, *range(6))) == list(range(6))
 
 	# empty line
-	l.update([("",)])
-	xo, = l.offset(0)
+	seq = [("",)]
+	xo, = library.offsets(seq, 0)
 	test/xo == 0
 
+	test/IndexError ^ library.offsets(seq, 1).__next__
+
 	# wide characters
-	l.update([("林花謝了春紅",)])
+	seq = [("林花謝了春紅",)]
 	for x in range(6):
-		xo, = l.offset(x)
+		xo, = library.offsets(seq, x)
 		test/xo == (x*2)
-	l.update([("f林o花謝了春紅",)])
-	xo, = l.offset(2)
+
+	seq = [("f林o花謝了春紅",)]
+	xo, = library.offsets(seq, 2)
 	test/xo == 3
-	xo, = l.offset(3)
+	xo, = library.offsets(seq, 3)
 	test/xo == 4
-	xo, = l.offset(4)
+	xo, = library.offsets(seq, 4)
 	test/xo == 6
 
 if __name__ == '__main__':

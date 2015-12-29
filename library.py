@@ -176,7 +176,10 @@ def offsets(text_sequence, *indexes, iter=iter, len=len, next=next, cells=cells)
 
 			nc += cells(t)
 			offset = noffset
-			x = next(i)
+			try:
+				x = next(i)
+			except StopIteration:
+				raise IndexError(y)
 			t = x[0]
 		else:
 			# index out of range
