@@ -1,6 +1,3 @@
-#if 0
-csource = """
-#endif
 /*
  * low level tty access
  *
@@ -8,6 +5,10 @@ csource = """
  */
 #include <sys/ttycom.h>
 #include <sys/ioctl.h>
+
+#include <fault/roles.h>
+#include <fault/python/environ.h>
+#include <fault/python/module.h>
 
 static PyObject *
 dimensions(PyObject *self, PyObject *args)
@@ -60,10 +61,6 @@ error:
 	DROP_MODULE(mod);
 	return(NULL);
 }
-
-#if 0
-"""
-#endif
 /*
  * vim: ts=3:sw=3:noet:
  */

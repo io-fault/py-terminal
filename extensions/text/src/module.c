@@ -2,6 +2,9 @@
  * Cell usage count for string display.
  */
 #include <wchar.h>
+#include <fault/roles.h>
+#include <fault/python/environ.h>
+#include <fault/python/module.h>
 
 static PyObj
 cells(PyObj self, PyObj str)
