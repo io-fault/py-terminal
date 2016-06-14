@@ -2,9 +2,10 @@
  * Cell usage count for string display.
  */
 #include <wchar.h>
+
 #include <fault/roles.h>
+#include <fault/internal.h>
 #include <fault/python/environ.h>
-#include <fault/python/module.h>
 
 static PyObj
 cells(PyObj self, PyObj str)
@@ -36,12 +37,11 @@ cells(PyObj self, PyObj str)
 }
 
 /* METH_O, METH_VARARGS, METH_VARKEYWORDS, METH_NOARGS */
-METHODS() = {
-	{"cells", (PyCFunction) cells, METH_O,
-		PyDoc_STR("get the number of cells the given unicode string requires for display")},
-	{NULL}
-};
+#define MODULE_FUNCTIONS() \
+	PYMETHOD(cells, cells, METH_O, \
+		"get the number of cells the given unicode string requires for display")
 
+#include <fault/python/module.h>
 INIT("functions for calculating the number of cells used by a unicode string for display")
 {
 	PyObj mod = NULL;
@@ -52,9 +52,9 @@ INIT("functions for calculating the number of cells used by a unicode string for
 
 	return(mod);
 
-fail:
-	DROP_MODULE(mod);
-	return(NULL);
+	fail:
+		DROP_MODULE(mod);
+		return(NULL);
 }
 /*
  * vim: ts=3:sw=3:noet:

@@ -7,8 +7,8 @@
 #include <sys/ioctl.h>
 
 #include <fault/roles.h>
+#include <fault/internal.h>
 #include <fault/python/environ.h>
-#include <fault/python/module.h>
 
 static PyObject *
 dimensions(PyObject *self, PyObject *args)
@@ -29,14 +29,12 @@ dimensions(PyObject *self, PyObject *args)
 	return(rob);
 }
 
-METHODS() = {
-	{"dimensions", (PyCFunction) dimensions, METH_NOARGS,
-		"get the dimensions of the tty"},
-	{NULL,}
-};
-
 #define PYTHON_TYPES()
 
+#define MODULE_FUNCTIONS() \
+	PYMETHOD(dimensions, dimensions, METH_NOARGS, "get the dimensions of the tty")
+
+#include <fault/python/module.h>
 INIT(PyDoc_STR("TTY C-API"))
 {
 	PyObj mod = NULL;
@@ -48,13 +46,13 @@ INIT(PyDoc_STR("TTY C-API"))
 	/*
 	 * Initialize Transit types.
 	 */
-#define ID(NAME) \
-	if (PyType_Ready((PyTypeObject *) &( NAME##Type ))) \
-		goto error; \
-	if (PyModule_AddObject(mod, #NAME, (PyObj) &( NAME##Type )) < 0) \
-		goto error;
-	PYTHON_TYPES()
-#undef ID
+	#define ID(NAME) \
+		if (PyType_Ready((PyTypeObject *) &( NAME##Type ))) \
+			goto error; \
+		if (PyModule_AddObject(mod, #NAME, (PyObj) &( NAME##Type )) < 0) \
+			goto error;
+		PYTHON_TYPES()
+	#undef ID
 
 	return(mod);
 error:
