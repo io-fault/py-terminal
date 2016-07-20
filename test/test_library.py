@@ -1,7 +1,9 @@
 from .. import library
 
-def test_position(test):
-	"Needs refactoring into a set of tests."
+def test_Position(test):
+	"""
+	Check &library.Position
+	"""
 	p = library.Position()
 	test/p.snapshot() == (0,0,0)
 	test/p.get() == 0
@@ -67,9 +69,12 @@ def test_position(test):
 	test/p.snapshot() == (10, 8, 19)
 
 def test_offsets(test):
+	"""
+	Check the character width analysis.
+	"""
 
 	# one-to-one mapping
-	seq = [("foo",), ("bar",), (" and some more",)]
+	seq = [("first",), ("second",), (" and some more",)]
 	for x in range(6):
 		test/x == list(library.offsets(seq, x))[0]
 
