@@ -1,23 +1,9 @@
-abstract = 'terminal display support for character devices'
-
-# IRI based project identity. (project homepage)
-identity = 'https://fault.io/project/python/terminal'
-
-# Project name.
+identity = 'https://fault.io/project/python/fault.terminal'
 name = 'terminal'
-
-# The name of the conceptual branch of development.
-fork = 'darkness' # Explicit branch name and a codename for the major version of the project.
-release = None # A number indicating its position in the releases of a branch. (fork)
-
-# The particular study or subject that the package is related to.
-study = {}
-
-# Relevant emoji or reference--URL or relative file path--to an image file.
+abstract = 'Terminal display support for character devices'
 icon = '🖥'
 
-# Responsible Party
-controller = 'fault.io'
+fork = 'darkness'
 
-# Contact point for the Responsible Party
+controller = 'fault.io'
 contact = 'mailto:critical@fault.io'
