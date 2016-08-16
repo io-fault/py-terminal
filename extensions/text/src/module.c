@@ -1,6 +1,6 @@
-/*
- * Cell usage count for string display.
- */
+/**
+	Cell usage count for string display.
+*/
 #include <wchar.h>
 
 #include <fault/roles.h>
@@ -16,10 +16,11 @@ cells(PyObj self, PyObj str)
 
 	if (!PyUnicode_Check(str))
 	{
-		PyErr_Format(PyExc_ValueError, "second argument must be str");
+		PyErr_Format(PyExc_ValueError, "argument must be a builtins.str instance");
 		return(NULL);
 	}
 
+	/* Fast path for ascii strings. */
 	if (PyUnicode_IS_ASCII(str))
 	{
 		return(PyLong_FromSsize_t(PyUnicode_GET_SIZE(str)));
@@ -36,7 +37,6 @@ cells(PyObj self, PyObj str)
 	return(PyLong_FromLong((long) width));
 }
 
-/* METH_O, METH_VARARGS, METH_VARKEYWORDS, METH_NOARGS */
 #define MODULE_FUNCTIONS() \
 	PYMETHOD(cells, cells, METH_O, \
 		"get the number of cells the given unicode string requires for display")
@@ -56,6 +56,3 @@ INIT("functions for calculating the number of cells used by a unicode string for
 		DROP_MODULE(mod);
 		return(NULL);
 }
-/*
- * vim: ts=3:sw=3:noet:
- */
