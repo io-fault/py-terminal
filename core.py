@@ -1,5 +1,5 @@
 """
-Primarily classes for representing input into a terminal.
+Fundamental classes for representing input from a terminal and managing state.
 """
 import functools
 import unicodedata
@@ -465,7 +465,13 @@ class Position(object):
 
 class Vector(object):
 	"""
-	A pair of positions describing an area and point.
+	A pair of &Position instances describing an area and point.
+
+	Primarily this exists to provide methods that will often be used simultaneously on the vertical
+	and horizontal positions. State snapshots and restoration being common or likely.
+
+	! IMPLEMENTATION:
+		This should probably be a tuple subclass.
 	"""
 	def __len__(self):
 		return 2
@@ -476,6 +482,9 @@ class Vector(object):
 				raise IndexError("terminal vectors only have two entries")
 			return self.vertical
 		return self.horizontal
+
+	def __iter__(self):
+		return (self.horizontal, self.vertical).__iter__()
 
 	def clear(self):
 		self.horizontal.clear()
