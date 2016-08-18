@@ -1,5 +1,8 @@
 """
 Color code translations for 256-color supporting terminals. Sourced from xterm.
+
+&translate and &code_string are the primary functions used to select 256-color palette
+entries from 24-bit RGB values.
 """
 import functools
 
@@ -82,6 +85,9 @@ def scale_color(r, g, b, initial = 0x5f):
 	Map the given RGB color to the one closest in the xterm palette.
 
 	The ranges start at zero, 0x5f, and then increments to 40.
+
+	! WARNING:
+		This is quite broken outside of exact matches.
 	"""
 	color = 0
 
@@ -131,13 +137,21 @@ sixteen_colors = {
 	0x00FFFF: 14,
 }
 
-def translate(rgb):
+def translate(rgb:int):
 	"""
 	Translate the given RGB color into a terminal color and gray colors that exist in
 	their corresponding palette.
 
-	This function analyzes the given RGB color and chooses the most similar value in
-	both gray and color palettes.
+	This function analyzes the given RGB color and chooses the closest value in
+	both gray and color palettes. &scale_gray and &scale_color are used to the select
+	the closest value in the corresponding palette.
+
+	[ Effects ]
+
+	/Product
+		A pair of tuples containing both the scaled gray and color. The tuples are
+		pairs with the first item designating whether it's color or gray and the second
+		item being the scaled value.
 	"""
 	typ = None
 	bw = 0
@@ -150,7 +164,7 @@ def translate(rgb):
 	avg = ((r + g + b) / 3)
 	gray = int(avg)
 
-	# select closest monochrome
+	# select closest from each table.
 	r = [
 		('color', scale_color(r, g, b)),
 		('gray', scale_gray(gray)),
