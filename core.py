@@ -10,8 +10,7 @@ __control_residual__ = []
 
 class Point(tuple):
 	"""
-	A pair of integers describing a position on screen; units are in "cells".
-	The point may be relative or absolute; the usage context defines its meaning.
+	A pair of integers locating a cell on the screen.
 	"""
 	__slots__ = ()
 
@@ -22,6 +21,18 @@ class Point(tuple):
 	@property
 	def y(self):
 		return self[1]
+
+	def __add__(self, point, op=int.__add__):
+		"""
+		Translate the point relative to another.
+		"""
+		return self.__class__((op(self[0], point[0]), op(self[1], point[1])))
+
+	def __sub__(self, point, op=int.__sub__):
+		"""
+		Abstract the point from another.
+		"""
+		return self.__class__((op(self[0], point[0]), op(self[1], point[1])))
 
 	@classmethod
 	def create(Class, *points):
@@ -192,15 +203,22 @@ class Character(tuple):
 
 class Position(object):
 	"""
-	Relative position from a particular point, &datum.
-
-	&offset specifies the relative offset to the datum,
-	and &magnitude defines the size, upper bounds.
-
+	Mutable position state for managing the position of a cursor.
 	Constraints are not enforced in order to allow the user to leverage the overflow.
-	"""
-	__slots__ = ('datum', 'offset', 'magnitude')
+	However, there are logical methods that allow a user to explicitly check the whether
+	the &Position is within a certain constraint.
 
+	[ Properties ]
+
+	/(&int)datum
+		The absolute position.
+
+	/(&int)offset
+		The actual position relative to the &datum.
+
+	/(&int)magnitude
+		The size of the range relative to the &datum.
+	"""
 	@property
 	def minimum(self):
 		return self.datum
@@ -296,8 +314,8 @@ class Position(object):
 
 		Perspective is like the whence parameter, but uses slightly different values.
 
-		-1 is used to move the offset relative from the end.
-		+1 is used to move the offset relative to the beginning.
+		`-1` is used to move the offset relative from the end.
+		`+1` is used to move the offset relative to the beginning.
 		Zero moves the offset relatively with &update.
 		"""
 		if perspective == 0:
@@ -501,7 +519,7 @@ class Vector(object):
 		"""
 		Get the absolute horizontal and vertical position as a 2-tuple.
 		"""
-		return Point.construct(self.horizontal.get(), self.vertical.get())
+		return Point((self.horizontal.get(), self.vertical.get()))
 
 	def __init__(self):
 		self.horizontal = Position()
