@@ -1,10 +1,10 @@
-identity = 'http://fault.io/python/fault.terminal'
+identity = 'http://fault.io/python/terminal'
 name = 'terminal'
 abstract = 'Low-level toolkit for controlling terminal displays'
 icon = '🖥'
 
-versioning = 'continuous'
 fork = 'darkness'
+versioning = 'continuous'
 status = 'flux'
 
 controller = 'fault.io'
