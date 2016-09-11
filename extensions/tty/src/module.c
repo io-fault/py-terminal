@@ -6,7 +6,7 @@
 #include <sys/ttycom.h>
 #include <sys/ioctl.h>
 
-#include <fault/roles.h>
+#include <fault/libc.h>
 #include <fault/internal.h>
 #include <fault/python/environ.h>
 

@@ -3,7 +3,7 @@
 */
 #include <wchar.h>
 
-#include <fault/roles.h>
+#include <fault/libc.h>
 #include <fault/internal.h>
 #include <fault/python/environ.h>
 
