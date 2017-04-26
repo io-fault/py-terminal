@@ -17,7 +17,6 @@ requests for control. This is a local version of the process signals used by ses
 manage terminal access for concurrent jobs.
 
 Coloring:
-
 	/textcolor
 		Foreground color.
 	/cellcolor
@@ -152,7 +151,9 @@ def scale(n, target = (1, 100), origin = (0, 0xFFFFFFFF), divmod = divmod):
 	return dx + n, r, sb
 
 def offsets(text_sequence, *indexes, iter=iter, len=len, next=next, cells=cells):
-	"Get the cell offset of the given character indexes."
+	"""
+	# Get the cell offset of the given character indexes.
+	"""
 	offset = 0
 	nc = 0
 	noffset = 0
@@ -259,11 +260,15 @@ class Unit(object):
 		self.display = tuple(text)
 
 	def __iter__(self, iter=iter):
-		"Returns an iterator to the display fragments."
+		"""
+		Returns an iterator to the display fragments.
+		"""
 		return iter(self.display)
 
 	def __getitem__(self, item):
-		"Get a portion of the Unit respecting the clipping of the unit."
+		"""
+		Get a portion of the Unit respecting the clipping of the unit.
+		"""
 		pass
 
 	def clear(self):
@@ -419,6 +424,7 @@ class View(object):
 	"""
 	A sequence of lines drawn into an &Area.
 	"""
+
 	def __init__(self, area, Sequence = list, Line = Line):
 		self.area = area
 		self.sequence = Sequence()
@@ -472,7 +478,9 @@ class View(object):
 			yield self.sequence[i]
 
 	def clear(self, start = 0, stop = None):
-		"Clear the view by removing the contents of the lines."
+		"""
+		Clear the view by removing the contents of the lines.
+		"""
 		for x in self.lines(start, stop):
 			x.update(())
 
