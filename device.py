@@ -53,54 +53,55 @@ style_codes = {
 	'cross': (b'9', b'29'),
 }
 
+Char = core.Character
 zero = core.Modifiers.construct()
 # Escape codes mapped to constructed Key presses.
 escape_codes = {
-	'': core.Character(('control', '', 'escape', zero)),
-	' ': core.Character(('control', ' ', 'space', core.Modifiers.construct(meta=True))),
-	'\t': core.Character(('control', '\t', 'tab', core.Modifiers.construct(meta=True))),
-	'[Z': core.Character(('control', '[Z', 'tab', core.Modifiers.construct(shift=True))),
-	'[Z': core.Character(('control', '[Z', 'tab', core.Modifiers.construct(shift=True, meta=True))),
-	'OM': core.Character(('control', 'OM', 'enter', zero)),
+	'': Char(('control', '', 'escape', zero)),
+	' ': Char(('control', ' ', 'space', core.Modifiers.construct(meta=True))),
+	'\t': Char(('control', '\t', 'tab', core.Modifiers.construct(meta=True))),
+	'[Z': Char(('control', '[Z', 'tab', core.Modifiers.construct(shift=True))),
+	'[Z': Char(('control', '[Z', 'tab', core.Modifiers.construct(shift=True, meta=True))),
+	'OM': Char(('control', 'OM', 'enter', zero)),
 
-	'\x7f': core.Character(('delta', '\x7f', 'delete', core.Modifiers.construct(meta=True))),
-	'\b': core.Character(('delta', '\b', 'backspace', core.Modifiers.construct(meta=True))),
+	'\x7f': Char(('delta', '\x7f', 'delete', core.Modifiers.construct(meta=True))),
+	'\b': Char(('delta', '\b', 'backspace', core.Modifiers.construct(meta=True))),
 
-	'[2~': core.Character(('delta', '[2~', 'insert', core.Modifiers.construct(meta=False))),
-	'[3~': core.Character(('delta', '[3~', 'delete', core.Modifiers.construct(meta=False))),
+	'[2~': Char(('delta', '[2~', 'insert', core.Modifiers.construct(meta=False))),
+	'[3~': Char(('delta', '[3~', 'delete', core.Modifiers.construct(meta=False))),
 
-	'[A': core.Character(('navigation', '[A', 'up', zero)),
-	'[B': core.Character(('navigation', '[B', 'down', zero)),
-	'[C': core.Character(('navigation', '[C', 'right', zero)),
-	'[D': core.Character(('navigation', '[D', 'left', zero)),
+	'[A': Char(('navigation', '[A', 'up', zero)),
+	'[B': Char(('navigation', '[B', 'down', zero)),
+	'[C': Char(('navigation', '[C', 'right', zero)),
+	'[D': Char(('navigation', '[D', 'left', zero)),
 
-	'OA': core.Character(('navigation', 'OA', 'up', zero)),
-	'OB': core.Character(('navigation', 'OB', 'down', zero)),
-	'OC': core.Character(('navigation', 'OC', 'right', zero)),
-	'OD': core.Character(('navigation', 'OD', 'left', zero)),
+	'OA': Char(('navigation', 'OA', 'up', zero)),
+	'OB': Char(('navigation', 'OB', 'down', zero)),
+	'OC': Char(('navigation', 'OC', 'right', zero)),
+	'OD': Char(('navigation', 'OD', 'left', zero)),
 
-	'[H': core.Character(('navigation', '[H', 'home', zero)),
-	'[F': core.Character(('navigation', '[F', 'end', zero)),
-	'[5~': core.Character(('navigation', '[5~', 'pageup', zero)),
-	'[6~': core.Character(('navigation', '[6~', 'pagedown', zero)),
+	'[H': Char(('navigation', '[H', 'home', zero)),
+	'[F': Char(('navigation', '[F', 'end', zero)),
+	'[5~': Char(('navigation', '[5~', 'pageup', zero)),
+	'[6~': Char(('navigation', '[6~', 'pagedown', zero)),
 
-	'OP': core.Character(('function', 'OP', 1, zero)),
-	'OQ': core.Character(('function', 'OQ', 2, zero)),
-	'OR': core.Character(('function', 'OR', 3, zero)),
-	'OS': core.Character(('function', 'OS', 4, zero)),
-	'[15~': core.Character(('function', '[15~', 5, zero)),
-	'[17~': core.Character(('function', '[17~', 6, zero)),
-	'[18~': core.Character(('function', '[18~', 7, zero)),
-	'[19~': core.Character(('function', '[19~', 8, zero)),
-	'[20~': core.Character(('function', '[20~', 9, zero)),
-	'[21~': core.Character(('function', '[21~', 10, zero)),
-	'[23~': core.Character(('function', '[23~', 11, zero)),
-	'[24~': core.Character(('function', '[24~', 12, zero)),
-	'[29~': core.Character(('function', '[29~', 'applications', zero)),
-	'[34~': core.Character(('function', '[34~', 'windows', zero)),
+	'OP': Char(('function', 'OP', 1, zero)),
+	'OQ': Char(('function', 'OQ', 2, zero)),
+	'OR': Char(('function', 'OR', 3, zero)),
+	'OS': Char(('function', 'OS', 4, zero)),
+	'[15~': Char(('function', '[15~', 5, zero)),
+	'[17~': Char(('function', '[17~', 6, zero)),
+	'[18~': Char(('function', '[18~', 7, zero)),
+	'[19~': Char(('function', '[19~', 8, zero)),
+	'[20~': Char(('function', '[20~', 9, zero)),
+	'[21~': Char(('function', '[21~', 10, zero)),
+	'[23~': Char(('function', '[23~', 11, zero)),
+	'[24~': Char(('function', '[24~', 12, zero)),
+	'[29~': Char(('function', '[29~', 'applications', zero)),
+	'[34~': Char(('function', '[34~', 'windows', zero)),
 
-	'[200~': core.Character(('paste', '[200~', 'start', zero)),
-	'[201~': core.Character(('paste', '[201~', 'stop', zero)),
+	'[200~': Char(('paste', '[200~', 'start', zero)),
+	'[201~': Char(('paste', '[201~', 'stop', zero)),
 }
 del zero
 
@@ -190,6 +191,7 @@ def render_codes():
 render_codes()
 del render_codes
 
+Modifier = core.Modifiers.construct
 control_characters = dict(
 	# Some of these get overridden with their
 	# common representation. (newline, backspace, etc)
@@ -210,7 +212,7 @@ control_characters = dict(
 			'', '',
 		),
 		(
-			core.Character(('control', x, x, core.Modifiers.construct(control=True)))
+			Char(('control', x, x, Modifier(control=True)))
 			for x in map(chr, range(ord('a'), ord('z')+1))
 		)
 	)
@@ -218,27 +220,28 @@ control_characters = dict(
 
 # Override any of the control characters with the common representation.
 control_characters.update({
-	'\x00': core.Character(('control', '\x00', 'nul', core.Modifiers.construct(control=False))),
+	'\x00': Char(('control', '\x00', 'nul', Modifier(control=False))),
 
-	'\x7f': core.Character(('delta', '\x7f', 'delete', core.Modifiers.construct(control=False))),
-	'\b': core.Character(('delta', '\b', 'backspace', core.Modifiers.construct(control=False))),
+	'\x7f': Char(('delta', '\x7f', 'delete', Modifier(control=False))),
+	'\b': Char(('delta', '\b', 'backspace', Modifier(control=False))),
 
-	' ': core.Character(('control', ' ', 'space', core.Modifiers.construct(control=False))),
+	' ': Char(('control', ' ', 'space', Modifier(control=False))),
 
-	'\t': core.Character(('control', '\t', 'tab', core.Modifiers.construct(control=False))),
-	'\r': core.Character(('control', '\r', 'return', core.Modifiers.construct(control=False))),
-	'\n': core.Character(('control', '\n', 'newline', core.Modifiers.construct(control=False))),
+	'\t': Char(('control', '\t', 'tab', Modifier(control=False))),
+	'\r': Char(('control', '\r', 'return', Modifier(control=False))),
+	'\n': Char(('control', '\n', 'newline', Modifier(control=False))),
 
-	'': core.Character(('control', '', 'bracket', core.Modifiers.construct(control=True))),
-	'': core.Character(('control', '', 'backslash', core.Modifiers.construct(control=True))),
-	'': core.Character(('control', '', 'underscore', core.Modifiers.construct(control=True))),
+	'': Char(('control', '', 'bracket', Modifier(control=True))),
+	'': Char(('control', '', 'backslash', Modifier(control=True))),
+	'': Char(('control', '', 'underscore', Modifier(control=True))),
 })
+del Char, Modifier
 
 @functools.lru_cache(32)
 def literal(k, Character = core.Character,
-	none = core.Modifiers(0),
-	shift = core.Modifiers.construct(shift=True),
-):
+		none = core.Modifiers(0),
+		shift = core.Modifiers.construct(shift=True),
+	):
 	id = k.lower()
 	return Character(('literal', k, id, shift if k != id else none))
 
