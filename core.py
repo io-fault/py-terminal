@@ -4,7 +4,7 @@ Fundamental classes for representing input from a terminal and managing state.
 import functools
 import unicodedata
 
-# process global state for managing the controlling [logical] process
+# Process global state for managing the controlling [logical] process.
 __control_requests__ = []
 __control_residual__ = []
 
@@ -41,7 +41,10 @@ class Point(tuple):
 
 class Modifiers(int):
 	"""
-	Bitmap of modifiers with an single imaginary numeric modifier.
+	Bitmap of modifiers with an imaginary index.
+
+	The imaginary index is usually not used, but can be used to describe
+	the modifier context or carry additional information about the event.
 	"""
 	__slots__ = ()
 
@@ -54,6 +57,14 @@ class Modifiers(int):
 		k: 1 << i for k, i in zip(sequence, range(len(sequence)))
 	}
 
+	def __repr__(self):
+		return (
+			"<" + ('|'.join([
+				x for x in self.sequence
+				if self.bits[x] & self
+			]) or 'none') + ">"
+		)
+
 	@property
 	def none(self):
 		return not (self & 0b111)
@@ -64,15 +75,11 @@ class Modifiers(int):
 
 	@property
 	def meta(self):
-		"Often the alt or option key."
-		return (self & 0b010)
+		return (self & 0b100)
 
 	@property
 	def shift(self):
-		"""
-		Shift key was detected.
-		"""
-		return (self & 0b100)
+		return (self & 0b010)
 
 	@property
 	def imaginary(self, position=len(sequence)):
@@ -80,11 +87,15 @@ class Modifiers(int):
 		An arbitrary number designating an imaginary modifier.
 		Defaults to zero.
 		"""
-		return self >> position
+		return int(self >> position)
+
+	def test(self, *fields):
+		bitset = sum([self.bits[x] for x in fields])
+		return bool(bitset & self)
 
 	@classmethod
 	@functools.lru_cache(9)
-	def construct(Class, bits = 0, control = False, meta = False, shift = False, imaginary = 0):
+	def construct(Class, bits=0, control=False, meta=False, shift=False, imaginary=0):
 		mid = imaginary << 3
 		mid |= bits
 
