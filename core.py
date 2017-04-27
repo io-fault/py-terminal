@@ -166,19 +166,14 @@ Character = Event
 
 class Position(object):
 	"""
-	Mutable position state for managing the position of a cursor.
+	Mutable position state for managing the position of a cursor with respect to a range.
 	Constraints are not enforced in order to allow the user to leverage the overflow.
-	However, there are logical methods that allow a user to explicitly check the whether
-	the &Position is within a certain constraint.
 
 	[ Properties ]
-
 	/(&int)datum
 		The absolute position.
-
 	/(&int)offset
 		The actual position relative to the &datum.
-
 	/(&int)magnitude
 		The size of the range relative to the &datum.
 	"""
@@ -352,6 +347,12 @@ class Position(object):
 		change = self.reposition()
 		self.magnitude -= change
 
+	def bisect(self):
+		"""
+		Place the position in the middle of the start and stop positions.
+		"""
+		self.offset = self.magnitude // 2
+
 	def halt(self):
 		"""
 		Halt the position by adjusting the &magnitude to match the position of the
@@ -387,7 +388,7 @@ class Position(object):
 			self.magnitude -= quantity
 			self.offset -= quantity
 		else:
-			# outside of range, so only adjust offset
+			# After of range, so only adjust offset
 			self.offset -= quantity
 
 	def changed(self, offset, quantity):
@@ -433,6 +434,10 @@ class Position(object):
 			return 0 # within bounds
 
 	def compensate(self):
+		"""
+		If the position lay outside of the range, relocate
+		the start or stop to be on position.
+		"""
 		r = self.relation()
 		if r == 1:
 			self.magnitude = self.offset
@@ -440,24 +445,27 @@ class Position(object):
 			self.datum += self.offset
 			self.offset = 0
 
-	def slice(self, adjustment = 0, step = 1, Slice = slice):
+	def slice(self, adjustment=0, step=1, Slice=slice):
+		"""
+		Construct a &slice object that represents the range.
+		"""
 		start, pos, stop = map(adjustment.__add__, self.snapshot())
 		return Slice(start, stop, step)
 
 class Vector(object):
 	"""
-	A pair of &Position instances describing an area and point.
+	A pair of &Position instances describing a two dimensional area and point.
 
 	Primarily this exists to provide methods that will often be used simultaneously on the vertical
 	and horizontal positions. State snapshots and restoration being common or likely.
 
-	! IMPLEMENTATION:
-		This should probably be a tuple subclass.
+	[ Engineering ]
+	This should probably be a tuple subclass.
 	"""
 	def __len__(self):
 		return 2
 
-	def __getitem__(self, index):
+	def __getitem__(self, index:int):
 		if index:
 			if index != 1:
 				raise IndexError("terminal vectors only have two entries")
@@ -468,12 +476,21 @@ class Vector(object):
 		return (self.horizontal, self.vertical).__iter__()
 
 	def clear(self):
+		"""
+		Zero the horizontal and vertical positions.
+		"""
 		self.horizontal.clear()
 		self.vertical.clear()
 
 	def move(self, x, y):
 		"""
 		Move the positions relative to their current state.
+		This method should be used for cases when applying a function:
+
+		#!/pl/python
+			for x in range(...):
+				vector.move(x, f(x))
+				draw(vector)
 		"""
 		self.horizontal.update(x)
 		self.vertical.update(y)
@@ -490,3 +507,7 @@ class Vector(object):
 
 	def snapshot(self):
 		return (self.horizontal.snapshot(), self.vertical.snapshot())
+
+	def restore(self, snapshot):
+		self.horizontal.restore(snapshot[0])
+		self.vertical.restore(snapshot[1])
