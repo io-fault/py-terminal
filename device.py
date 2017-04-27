@@ -246,46 +246,59 @@ def literal(k, Character = core.Character,
 	return Character(('literal', k, id, shift if k != id else none))
 
 def literal_events(data):
-	'Resolve events for keys without escapes'
+	"""
+	# Resolve events for keys without escapes.
+	"""
 	return tuple(
-		control_characters[x] if x in control_characters else literal(x)
+		control_characters[x]
+		if x in control_characters else literal(x)
 		for x in data
 	)
 
-@functools.lru_cache(16) # optimize scrolls
+@functools.lru_cache(16)
 def mouse(string):
-	"Construct a raw mouse event."
+	"""
+	# Construct a raw mouse event from the given string.
+	# &mouse separates scroll, click, and drag events.
+	"""
 
-	global point
-	buttons = {
-		64: 'scroll-up',
-		65: 'scroll-down',
-		-1: 'scroll-left',
-		-2: 'scroll-right',
-		0: 'primary',
-		2: 'context',
-	}
-
+	event = 'mouse'
 	data = string[2:-1]
 	mbutton, mx, my = map(int, data.split(';'))
 
 	if mbutton < 32:
+		event = 'mouse'
 		if string[-1] == 'M':
 			act = 1 # press
 		elif string[-1] == 'm':
 			act = -1 # release
+		offset = 0
 	elif mbutton < 64:
 		# drag
-		mbutton -= 32
+		offset = 32
 		act = 0
+		event = 'drag'
 	else:
-		# activate vs press/release
-		act = 0
+		event = 'scroll'
+		# Scroll Events.
+		offset = 64
+
+		# Evens scroll up, odds down.
+		if mbutton % 2:
+			act = 1
+			offset += 1
+		else:
+			act = -1
+
+	mods = mbutton - offset
+	shift = mods & 4
+	meta = mods & 8
+	control = mods & 16
 
 	return core.Character((
-		'mouse', string,
-		(point(mx, my), buttons.get(mbutton, mbutton), act),
-		core.Modifiers(0),
+		event, string,
+		(point(mx, my), act, mods & 0b11),
+		core.Modifiers.construct(shift=shift, meta=meta, control=control),
 	))
 
 def escaped_events(string, Character = core.Character):
@@ -296,7 +309,7 @@ def escaped_events(string, Character = core.Character):
 	if string in escape_codes:
 		return escape_codes[string]
 	else:
-		if string.startswith('[<'):
+		if string[:2] == '[<':
 			# mouse event
 			return mouse(string)
 		else:
