@@ -401,6 +401,9 @@ class Display(object):
 
 	@functools.lru_cache(32)
 	def color_string(self, rgb):
+		"""
+		# 24-bit color constructor.
+		"""
 		r = (rgb >> 16) & 0xFF
 		g = (rgb >> 8) & 0xFF
 		b = (rgb >> 0) & 0xFF
@@ -414,13 +417,13 @@ class Display(object):
 
 		return (select_background, strcode)
 
-	def foreground(self, color, select_foreground=select_foreground):
+	def foreground(self, color, select_foreground=select_foreground_rgb):
 		"Change the foreground color."
 
-		translation = palette.translate(color)
-		strcode = palette.code_string(translation)
+		#translation = palette.translate(color)
+		#strcode = palette.code_string(translation)
 
-		return (select_foreground, strcode)
+		return (select_foreground, self.color_string(color))
 
 	def style(self, text, styles=(),
 			textcolor=None, cellcolor=None,
@@ -429,10 +432,10 @@ class Display(object):
 			control_map=control_table
 		):
 		"""
-		Style the text for printing according to the given style set and color.
+		# Style the text for printing according to the given style set and color.
 
-		&styles is a set of style names to apply. The support set is listed in &style_codes.
-		&color is a 24-bit color value that is translated to a terminal color code.
+		# &styles is a set of style names to apply. The support set is listed in &style_codes.
+		# &color is a 24-bit color value that is translated to a terminal color code.
 		"""
 
 		# XXX: escape newlines and low-ascii?
