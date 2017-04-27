@@ -1,5 +1,5 @@
 """
-Dictionaries containing various unicode symbols for display purposes.
+# Dictionaries containing various unicode symbols for display purposes.
 """
 
 horizontal_progress = ' ▏▎▎▍▌▋▊▉█'

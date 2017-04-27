@@ -2,7 +2,7 @@ from .. import library
 
 def test_Position(test):
 	"""
-	Check &library.Position
+	# Check &library.Position
 	"""
 	p = library.Position()
 	test/p.snapshot() == (0,0,0)
@@ -70,7 +70,7 @@ def test_Position(test):
 
 def test_offsets(test):
 	"""
-	Check the character width analysis.
+	# Check the character width analysis.
 	"""
 
 	# one-to-one mapping

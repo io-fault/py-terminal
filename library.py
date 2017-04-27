@@ -1,30 +1,30 @@
 """
-The terminal I/O interfaces. The module consists of four conceptual areas: input, output,
-settings management, and control management.
+# The terminal I/O interfaces. The module consists of four conceptual areas: input, output,
+# settings management, and control management.
 
-The input portions cover the data structures used to represent character (key) events, &Character,
-and the function used to construct them from an arbitrary bytes stream.
+# The input portions cover the data structures used to represent character (key) events, &Character,
+# and the function used to construct them from an arbitrary bytes stream.
 
-The output portions are primarily two classes used to render the terminal control codes
-for a particular operation, essentially high-level tput. &Display for the entire terminal
-screen and &Area for displaying to parts of the screen.
+# The output portions are primarily two classes used to render the terminal control codes
+# for a particular operation, essentially high-level tput. &Display for the entire terminal
+# screen and &Area for displaying to parts of the screen.
 
-Settings management is covered with a few functions to configure the terminal in raw mode
-and store and restore the settings themselves.
+# Settings management is covered with a few functions to configure the terminal in raw mode
+# and store and restore the settings themselves.
 
-The control portion keeps state about the process-local controller of the terminal and any
-requests for control. This is a local version of the process signals used by sessions to
-manage terminal access for concurrent jobs.
+# The control portion keeps state about the process-local controller of the terminal and any
+# requests for control. This is a local version of the process signals used by sessions to
+# manage terminal access for concurrent jobs.
 
-Coloring:
-	/textcolor
-		Foreground color.
-	/cellcolor
-		Uppermost background color. (opacity mixing?)
-	/foreground
-		Default text color.
-	/background
-		Default cell color.
+# Coloring:
+	# /textcolor
+		# Foreground color.
+	# /cellcolor
+		# Uppermost background color. (opacity mixing?)
+	# /foreground
+		# Default text color.
+	# /background
+		# Default cell color.
 """
 import sys
 import os
@@ -78,9 +78,9 @@ theme = {
 
 def restore_at_exit(path = device.path):
 	"""
-	Save the Terminal state and register an atexit handler to restore it.
+	# Save the Terminal state and register an atexit handler to restore it.
 
-	Called once when the process is started to restore the terminal state.
+	# Called once when the process is started to restore the terminal state.
 	"""
 	import atexit
 
@@ -101,31 +101,31 @@ def restore_at_exit(path = device.path):
 
 def request_control(controller):
 	"""
-	Request exclusive control of the terminal.
-	Often used as a effect of to a SIGTIN or SIGTOUT signal for the would be foreground.
+	# Request exclusive control of the terminal.
+	# Often used as a effect of to a SIGTIN or SIGTOUT signal for the would be foreground.
 
-	Primarily used by shell implementations and multi-facet processes.
+	# Primarily used by shell implementations and multi-facet processes.
 	"""
 
 def residual_control(controller):
 	"""
-	Identify the controller as residual having the effect that it registers itself
-	as taking control after outstanding requests have relinquished their ownership.
+	# Identify the controller as residual having the effect that it registers itself
+	# as taking control after outstanding requests have relinquished their ownership.
 	"""
 
 def scale(n, target = (1, 100), origin = (0, 0xFFFFFFFF), divmod = divmod):
 	"""
-	Given a number, target range, and a origin range. Project the number
-	onto the target range so that the projected number
-	is proportional to the target range with respect to the number's
-	relative position in the origin range. For instance::
+	# Given a number, target range, and a origin range. Project the number
+	# onto the target range so that the projected number
+	# is proportional to the target range with respect to the number's
+	# relative position in the origin range. For instance::
 
 	>>> scale(5, target=(1,100), origin=(1,10))
 	(50, 0, 9)
 
-	The return is a triple: (N, remainder, origin[1] - origin[0])
-	Where the second item is the remainder with the difference between the source
-	range's end and beginning.
+	# The return is a triple: (N, remainder, origin[1] - origin[0])
+	# Where the second item is the remainder with the difference between the source
+	# range's end and beginning.
 	"""
 	# The relative complexity of this sequence of computations is due to the
 	# need to push division toward the end of the transformation sequence. That
@@ -152,7 +152,7 @@ def scale(n, target = (1, 100), origin = (0, 0xFFFFFFFF), divmod = divmod):
 
 def offsets(text_sequence, *indexes, iter=iter, len=len, next=next, cells=cells):
 	"""
-	# Get the cell offset of the given character indexes.
+	##  Get the cell offset of the given character indexes.
 	"""
 	offset = 0
 	nc = 0
@@ -189,12 +189,12 @@ def offsets(text_sequence, *indexes, iter=iter, len=len, next=next, cells=cells)
 Display = device.Display
 class Area(Display):
 	"""
-	A Display class whose seek operations are translated according to the configured position.
+	# A Display class whose seek operations are translated according to the configured position.
 	"""
 
 	def adjust(self, position, dimensions):
 		"""
-		Adjust the position of the area.
+		# Adjust the position of the area.
 		"""
 		self.point = position
 		self.dimensions = dimensions
@@ -203,7 +203,7 @@ class Area(Display):
 
 	def clear(self):
 		"""
-		Clear the area.
+		# Clear the area.
 		"""
 		init = self.seek((0, 0))
 
@@ -216,19 +216,19 @@ class Area(Display):
 
 	def seek(self, point):
 		"""
-		Seek to the point relative to the area.
+		# Seek to the point relative to the area.
 		"""
 		return self.seek_absolute(self.translate(self.point, point))
 
 	def seek_start_of_line(self):
 		"""
-		Seek to the start of the line.
+		# Seek to the start of the line.
 		"""
 		return super().seek_start_of_line() + self.seek_horizontal_relative(self.point[0])
 
 	def seek_bottom(self):
 		"""
-		Seek to the last row of the area and the first column.
+		# Seek to the last row of the area and the first column.
 		"""
 		return self.seek((0, self.height-1))
 
@@ -246,9 +246,9 @@ class Area(Display):
 
 class Unit(object):
 	"""
-	A unit of text be drawn on an area; styled and width clipping functionality.
+	# A unit of text be drawn on an area; styled and width clipping functionality.
 
-	Changes in text length is tracked so that proper erase instructions can be generated.
+	# Changes in text length is tracked so that proper erase instructions can be generated.
 	"""
 	__slots__ = ('text', 'display', 'clipping', 'clipped', 'change', 'length')
 
@@ -261,20 +261,20 @@ class Unit(object):
 
 	def __iter__(self, iter=iter):
 		"""
-		Returns an iterator to the display fragments.
+		# Returns an iterator to the display fragments.
 		"""
 		return iter(self.display)
 
 	def __getitem__(self, item):
 		"""
-		Get a portion of the Unit respecting the clipping of the unit.
+		# Get a portion of the Unit respecting the clipping of the unit.
 		"""
 		pass
 
 	def clear(self):
 		"""
-		Clear the line leaving the change data in order to allow subsequent renders to
-		properly clear excess and outdated display.
+		# Clear the line leaving the change data in order to allow subsequent renders to
+		# properly clear excess and outdated display.
 		"""
 
 		change = self.change - self.length
@@ -294,10 +294,10 @@ class Unit(object):
 
 	def clip(self, offset, width, len=len, range=range, cells=cells):
 		"""
-		Clip the text according to the given width and offset.
-		Used to prepare the (display) line for rendering.
+		# Clip the text according to the given width and offset.
+		# Used to prepare the (display) line for rendering.
 
-		Can be used multiple times in order to reflect area changes.
+		# Can be used multiple times in order to reflect area changes.
 		"""
 
 		self.clipping = (offset, width)
@@ -347,12 +347,12 @@ class Unit(object):
 
 	def render(self, area, foreground=None, background=None):
 		"""
-		Render the line according to the given area.
+		# Render the line according to the given area.
 
-		The rendered string should be clipped *ahead of time* to restrict
-		its width.
+		# The rendered string should be clipped *ahead of time* to restrict
+		# its width.
 
-		If there was any noted length change, it will be cleared by &render.
+		# If there was any noted length change, it will be cleared by &render.
 		"""
 
 		text = self.display
@@ -378,7 +378,7 @@ Line = Unit # Compat
 
 class Overwrite(object):
 	"""
-	Objects used in conjunction with &Line to writing combining characters.
+	# Objects used in conjunction with &Line to writing combining characters.
 	"""
 	__slots__ = ('characters',)
 
@@ -392,7 +392,7 @@ class Overwrite(object):
 
 class Pattern(object):
 	"""
-	Overwrite that is based on a frequency pattern.
+	# Overwrite that is based on a frequency pattern.
 	"""
 	__slots__ = ('characters', 'style', 'color')
 
@@ -403,7 +403,7 @@ class Pattern(object):
 
 	def render(self, area, frequency, *ranges):
 		"""
-		Render the pattern for overwriting on to an existing line.
+		# Render the pattern for overwriting on to an existing line.
 		"""
 		overwrite = area.style(self.characters, self.style, self.color)
 
@@ -422,7 +422,7 @@ class Pattern(object):
 
 class View(object):
 	"""
-	A sequence of lines drawn into an &Area.
+	# A sequence of lines drawn into an &Area.
 	"""
 
 	def __init__(self, area, Sequence = list, Line = Line):
@@ -442,10 +442,10 @@ class View(object):
 
 	def scroll(self, quantity):
 		"""
-		Scroll the number of lines off-screen and add empty ones to the
-		other end of the sequence.
+		# Scroll the number of lines off-screen and add empty ones to the
+		# other end of the sequence.
 
-		This method is used to implement relatively efficient scrolling.
+		# This method is used to implement relatively efficient scrolling.
 		"""
 		if quantity < 0:
 			# move lines down
@@ -470,7 +470,7 @@ class View(object):
 
 	def lines(self, start, stop = None):
 		"""
-		Return an iterator to a slice of the lines grouped with the relative line number.
+		# Return an iterator to a slice of the lines grouped with the relative line number.
 		"""
 		l = len(self.sequence)
 		end = min(l, stop or l)
@@ -479,16 +479,16 @@ class View(object):
 
 	def clear(self, start = 0, stop = None):
 		"""
-		Clear the view by removing the contents of the lines.
+		# Clear the view by removing the contents of the lines.
 		"""
 		for x in self.lines(start, stop):
 			x.update(())
 
 	def adjust(self, point, dimensions):
 		"""
-		Update the position and the dimensions of the view.
+		# Update the position and the dimensions of the view.
 
-		Doing so causes lines to be clipped according to the width.
+		# Doing so causes lines to be clipped according to the width.
 		"""
 		lines = self.sequence
 		self.area.adjust(point, dimensions)
@@ -510,14 +510,14 @@ class View(object):
 
 	def update(self, start, stop, lines):
 		"""
-		Update the line range in the view.
+		# Update the line range in the view.
 		"""
 		for x, l in zip(self.lines(start, stop), lines):
 			x.update(l)
 
 	def render(self, start=0, stop=None):
 		"""
-		Render all the lines in the sequence into the area.
+		# Render all the lines in the sequence into the area.
 		"""
 		a = self.area
 		yield a.seek((0, start))

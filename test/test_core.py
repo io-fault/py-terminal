@@ -17,7 +17,7 @@ def test_Point(test):
 
 def test_Position(test):
 	"""
-	Check all the methods of &library.Position
+	# Check all the methods of &library.Position
 	"""
 	p = library.Position()
 	test/p.snapshot() == (0,0,0)

@@ -1,17 +1,17 @@
 """
-Color code translations for 256-color supporting terminals. Sourced from xterm.
+# Color code translations for 256-color supporting terminals. Sourced from xterm.
 
-&translate and &code_string are the primary functions used to select 256-color palette
-entries from 24-bit RGB values.
+# &translate and &code_string are the primary functions used to select 256-color palette
+# entries from 24-bit RGB values.
 """
 import functools
 
 def gray_palette(index):
 	"""
-	Twenty four shades. Map range(24) for the full palette.
-	Returns a tuple with the 24-bit RGB value and the code.
+	# Twenty four shades. Map range(24) for the full palette.
+	# Returns a tuple with the 24-bit RGB value and the code.
 
-	White and black are not included.
+	# White and black are not included.
 	"""
 	if index < 0:
 		index = 0
@@ -24,25 +24,25 @@ def gray_palette(index):
 
 def gray_code(color):
 	"""
-	Covert the given 24-bit RGB color into a gray color code.
+	# Covert the given 24-bit RGB color into a gray color code.
 
-	If the color does not have an exact match in the palette, the returned code may
-	not be a reaonable substitute for the given color.
+	# If the color does not have an exact match in the palette, the returned code may
+	# not be a reaonable substitute for the given color.
 	"""
 	r = (color - 8) // 10
 	return r + 232
 
 def scale_gray(color):
 	"""
-	Return the closest gray available in the palette.
+	# Return the closest gray available in the palette.
 	"""
 	return gray_palette(gray_code(color & 0xFF) - 232)[0]
 
 def color_palette(r, g, b):
 	"""
-	Select a color from the 256-color palette using 0-6 indexes for each color.
+	# Select a color from the 256-color palette using 0-6 indexes for each color.
 
-	Map the product of three range(6) instances to render the full palette.
+	# Map the product of three range(6) instances to render the full palette.
 	"""
 	code = 16 + (r * 36) + (g * 6) + b
 
@@ -60,10 +60,10 @@ def color_palette(r, g, b):
 
 def color_code(color):
 	"""
-	Convert the given 24-bit RGB color into a terminal color code.
+	# Convert the given 24-bit RGB color into a terminal color code.
 
-	If the color does not have an exact match in the palette, the returned code may
-	not be a reaonable substitute for the given color.
+	# If the color does not have an exact match in the palette, the returned code may
+	# not be a reaonable substitute for the given color.
 	"""
 	r, g, b = (color & 0xFF0000) >> 16, (color & 0x00FF00) >> 8, (color & 0xFF)
 	ri = (r - 55) // 40
@@ -82,12 +82,12 @@ def color_code(color):
 
 def scale_color(r, g, b, initial = 0x5f):
 	"""
-	Map the given RGB color to the one closest in the xterm palette.
+	# Map the given RGB color to the one closest in the xterm palette.
 
-	The ranges start at zero, 0x5f, and then increments to 40.
+	# The ranges start at zero, 0x5f, and then increments to 40.
 
-	! WARNING:
-		This is quite broken outside of exact matches.
+	# ! WARNING:
+		# This is quite broken outside of exact matches.
 	"""
 	color = 0
 
@@ -139,19 +139,19 @@ sixteen_colors = {
 
 def translate(rgb:int):
 	"""
-	Translate the given RGB color into a terminal color and gray colors that exist in
-	their corresponding palette.
+	# Translate the given RGB color into a terminal color and gray colors that exist in
+	# their corresponding palette.
 
-	This function analyzes the given RGB color and chooses the closest value in
-	both gray and color palettes. &scale_gray and &scale_color are used to the select
-	the closest value in the corresponding palette.
+	# This function analyzes the given RGB color and chooses the closest value in
+	# both gray and color palettes. &scale_gray and &scale_color are used to the select
+	# the closest value in the corresponding palette.
 
-	[ Effects ]
+	# [ Effects ]
 
-	/Product
-		A pair of tuples containing both the scaled gray and color. The tuples are
-		pairs with the first item designating whether it's color or gray and the second
-		item being the scaled value.
+	# /Product
+		# A pair of tuples containing both the scaled gray and color. The tuples are
+		# pairs with the first item designating whether it's color or gray and the second
+		# item being the scaled value.
 	"""
 	typ = None
 	bw = 0
@@ -175,14 +175,14 @@ def translate(rgb:int):
 
 def color(translation):
 	"""
-	Return the 24-bit RGB value from a translation tuple.
+	# Return the 24-bit RGB value from a translation tuple.
 	"""
 	return translation[0][1]
 
 def code(translation):
 	"""
-	Return the terminal color code to use given the translation.
-	Simply select the initial item as the translated values are sorted in &translate.
+	# Return the terminal color code to use given the translation.
+	# Simply select the initial item as the translated values are sorted in &translate.
 	"""
 	typ, value = translation[0]
 
@@ -194,13 +194,13 @@ def code(translation):
 @functools.lru_cache(64)
 def code_string(translation):
 	"""
-	The translation's code in bytes form for sending to the display.
+	# The translation's code in bytes form for sending to the display.
 	"""
 	return str(code(translation)).encode('utf-8')
 
 def index():
 	"""
-	Construct and return a full index of color codes to their corresponding RGB value.
+	# Construct and return a full index of color codes to their corresponding RGB value.
 	"""
 	import itertools
 	idx = dict()

@@ -1,5 +1,5 @@
 """
-Developer tool used to observe the transformed events from received from standard input.
+# Developer tool used to observe the transformed events from received from standard input.
 """
 import sys
 import os

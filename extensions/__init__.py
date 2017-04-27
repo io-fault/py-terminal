@@ -1,3 +1,3 @@
 """
-Python C Extensions for terminal support.
+# Python C Extensions for terminal support.
 """

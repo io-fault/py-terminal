@@ -1,14 +1,14 @@
 """
-Terminal device input and output interfaces.
+# Terminal device input and output interfaces.
 
-The Character input works with unicode while the output works with bytes.
-Certain display events (style) may work with unicode (str) object, but access
-to raw output is available.
+# The Character input works with unicode while the output works with bytes.
+# Certain display events (style) may work with unicode (str) object, but access
+# to raw output is available.
 
-The module level constants are xterm-compatible and can be used directly, but
-won't be updated to support other terminals. The &Display class provides [or will provide]
-the necessary abstraction to load and use terminal implementation specific codes.
-Currently, however, xterm is assumed.
+# The module level constants are xterm-compatible and can be used directly, but
+# won't be updated to support other terminals. The &Display class provides [or will provide]
+# the necessary abstraction to load and use terminal implementation specific codes.
+# Currently, however, xterm is assumed.
 """
 import array
 import collections
@@ -247,7 +247,7 @@ def literal(k, Character = core.Character,
 
 def literal_events(data):
 	"""
-	# Resolve events for keys without escapes.
+	#  Resolve events for keys without escapes.
 	"""
 	return tuple(
 		control_characters[x]
@@ -258,8 +258,8 @@ def literal_events(data):
 @functools.lru_cache(16)
 def mouse(string):
 	"""
-	# Construct a raw mouse event from the given string.
-	# &mouse separates scroll, click, and drag events.
+	#  Construct a raw mouse event from the given string.
+	#  &mouse separates scroll, click, and drag events.
 	"""
 
 	event = 'mouse'
@@ -303,7 +303,7 @@ def mouse(string):
 
 def escaped_events(string, Character = core.Character):
 	"""
-	Resolve the Key instance for the given string instance.
+	# Resolve the Key instance for the given string instance.
 	"""
 
 	if string in escape_codes:
@@ -317,7 +317,7 @@ def escaped_events(string, Character = core.Character):
 
 def construct_character_events(data, escape = '\x1b'):
 	"""
-	Resolve the key events for the binary input read from a terminal.
+	# Resolve the key events for the binary input read from a terminal.
 	"""
 	# Some keys are represented literally and some
 	# use escape encoding, "\x1b[...".
@@ -363,10 +363,10 @@ def construct_character_events(data, escape = '\x1b'):
 
 class Display(object):
 	"""
-	Control function index for manipulating a terminal display.
+	# Control function index for manipulating a terminal display.
 
-	This currently does not use the termcap database to shape the rendered escape sequences,
-	and is primarily supporting xterm and xterm-like terminal implementations.
+	# This currently does not use the termcap database to shape the rendered escape sequences,
+	# and is primarily supporting xterm and xterm-like terminal implementations.
 	"""
 	control_mapping = {chr(i): chr(0x2400 + i) for i in range(32)}
 	control_table = str.maketrans(control_mapping)
@@ -402,7 +402,7 @@ class Display(object):
 	@functools.lru_cache(32)
 	def color_string(self, rgb):
 		"""
-		# 24-bit color constructor.
+		#  24-bit color constructor.
 		"""
 		r = (rgb >> 16) & 0xFF
 		g = (rgb >> 8) & 0xFF
@@ -432,10 +432,10 @@ class Display(object):
 			control_map=control_table
 		):
 		"""
-		# Style the text for printing according to the given style set and color.
+		#  Style the text for printing according to the given style set and color.
 
-		# &styles is a set of style names to apply. The support set is listed in &style_codes.
-		# &color is a 24-bit color value that is translated to a terminal color code.
+		#  &styles is a set of style names to apply. The support set is listed in &style_codes.
+		#  &color is a 24-bit color value that is translated to a terminal color code.
 		"""
 
 		# XXX: escape newlines and low-ascii?
@@ -480,7 +480,7 @@ class Display(object):
 			partial=functools.partial,
 		):
 		"""
-		Apply the &style method to a sequence joining the results into a single string.
+		# Apply the &style method to a sequence joining the results into a single string.
 		"""
 
 		style = partial(self.style, foreground=foreground, background=background)
@@ -488,26 +488,26 @@ class Display(object):
 
 	def backspace(self, times=1):
 		"""
-		Cause an actual backspace to be performed.
+		# Cause an actual backspace to be performed.
 		"""
 		# mimics an actual backspace
 		return b'\b \b' * times
 
 	def space(self, times = 1):
 		"""
-		Insert a sequence of spaces.
+		# Insert a sequence of spaces.
 		"""
 		return b' ' * times
 
 	def erase(self, times=1):
 		"""
-		The 'X' terminal code.
+		# The 'X' terminal code.
 		"""
 		return self.escape(self.encode(times) + b'X')
 
 	def blank(self, times=1):
 		"""
-		The '@' terminal code.
+		# The '@' terminal code.
 		"""
 		return self.escape(self.encode(times) + b'@')
 
@@ -518,13 +518,13 @@ class Display(object):
 
 	def seek(self, coordinates):
 		"""
-		Relocate the caret to an arbitrary, (area) relative location.
+		# Relocate the caret to an arbitrary, (area) relative location.
 		"""
 		return self.seek_absolute(coordinates)
 
 	def seek_line(self, lineno):
 		"""
-		Seek to the beginning of a particular line number.
+		# Seek to the beginning of a particular line number.
 		"""
 		return self.seek((0, lineno))
 
@@ -616,9 +616,9 @@ class Display(object):
 
 	def deflate_area(self, area):
 		"""
-		Delete space, (horizontal, vertical) between the caret.
+		# Delete space, (horizontal, vertical) between the caret.
 
-		Often used to contract space after deleting characters.
+		# Often used to contract space after deleting characters.
 		"""
 		change = b''
 		h, v = area
@@ -632,9 +632,9 @@ class Display(object):
 
 	def inflate_area(self, area):
 		"""
-		Insert space, (horizontal, vertical) between the caret.
+		# Insert space, (horizontal, vertical) between the caret.
 
-		Often used to make room for displaying characters.
+		# Often used to make room for displaying characters.
 		"""
 		change = b''
 		h, v = area
@@ -648,8 +648,8 @@ class Display(object):
 
 	def resize(self, old, new):
 		"""
-		Given a number of characters from the caret &old, resize the area
-		to &new. This handles cases when the new size is smaller and larger than the old.
+		# Given a number of characters from the caret &old, resize the area
+		# to &new. This handles cases when the new size is smaller and larger than the old.
 		"""
 		deletes = self.deflate_horizontal(old)
 		spaces = self.inflate_horizontal(new)
@@ -658,7 +658,7 @@ class Display(object):
 
 	def delete(self, start, stop):
 		"""
-		Delete the slice of characters moving the remainder in.
+		# Delete the slice of characters moving the remainder in.
 		"""
 		buf = self.seek_start_of_line()
 		buf += self.seek_horizontal_relative(start)
@@ -667,8 +667,8 @@ class Display(object):
 
 	def overwrite(self, offset_styles):
 		"""
-		Given a sequence of (relative_offset, style(text)), return
-		the necessary sequences to *overwrite* the characters at the offset.
+		# Given a sequence of (relative_offset, style(text)), return
+		# the necessary sequences to *overwrite* the characters at the offset.
 		"""
 		buf = bytearray()
 		for offset, styles in offset_styles:
@@ -678,7 +678,7 @@ class Display(object):
 
 def set_raw(fd, path=path):
 	"""
-	Set raw mode and return the previous settings.
+	# Set raw mode and return the previous settings.
 	"""
 	tty.setcbreak(fd)
 	tty.setraw(fd)
@@ -688,19 +688,19 @@ def set_raw(fd, path=path):
 
 def settings_snapshot(fd):
 	"""
-	Get the current terminal settings.
+	# Get the current terminal settings.
 	"""
 	return termios.tcgetattr(fd)
 
 def settings_restore(fd, stored_settings, path=path):
 	"""
-	Apply the given settings.
+	# Apply the given settings.
 	"""
 	return termios.tcsetattr(fd, termios.TCSADRAIN, stored_settings)
 
 def dimensions(fd, winsize=array.array("h", [0,0,0,0])):
 	"""
-	Dimensions of the physical terminal.
+	# Dimensions of the physical terminal.
 	"""
 	winsize = winsize * 1 # get a new array instance
 	fcntl.ioctl(fd, termios.TIOCGWINSZ, winsize, True)

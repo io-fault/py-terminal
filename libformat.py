@@ -1,5 +1,5 @@
 """
-# Color formatting for file paths, URIs, and timestamps.
+#  Color formatting for file paths, URIs, and timestamps.
 """
 import os
 import sys
@@ -75,7 +75,7 @@ ri_delimiters = {
 
 def f_authority(struct):
 	"""
-	# Format the authority fields of a Resource Indicator.
+	#  Format the authority fields of a Resource Indicator.
 	"""
 	scheme_idx = ri_scheme_map.get(struct["scheme"], 'scheme')
 
@@ -326,7 +326,7 @@ del metric
 
 def f_timestamp(relation, timestamp, precision='microsecond'):
 	"""
-	# Format with respect to the &relation point in time.
+	#  Format with respect to the &relation point in time.
 	"""
 	prefix = f_date(relation, timestamp)
 	suffix = f_time(relation, timestamp)
