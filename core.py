@@ -110,56 +110,7 @@ class Modifiers(int):
 
 		return Class(mid)
 
-class Mouse(object):
-	"""
-	Mouse state management for constructing simple gestures.
-
-	Primarily used to construct click events from narrow mouse press-release windows.
-	"""
-
-	def __init__(self):
-		self.state = {}
-		self.timestamps = {}
-		self.drag = None
-		self.last = None
-
-	def process(self, when, event):
-		if event.type == 'mouse':
-
-			me = event.identity
-			act = me[-1] # act: 1 == press, -1 == release, 0 move/na
-
-			self.state[me[1]] += act
-			rv = self.state[me[1]]
-			if rv:
-				# pressed
-				if act:
-					assert rv > 1
-					self.timestamps[me[1]].append(when)
-					self.drag = event
-				else:
-					# drag continuation
-					self.last = (when, event)
-					return event
-			else:
-				assert rv == 0
-				start = self.timestamps.pop(me[1])
-				stop = when
-				measure = start.measure(stop)
-				start_event = self.drag
-				stop_event = event
-				self.drag = None
-		elif event.type == 'control':
-			# abort drag
-			if self.drag is not None:
-				if event.identity == 'escape':
-					# abort drag
-					return Character(('mouse', None, (), core.Modifiers(0)))
-				elif self.last[0].measure(when).exceeds(second=30):
-					# timeout drag
-					pass
-
-class Character(tuple):
+class Event(tuple):
 	"""
 	A single characeter from input event from a terminal device.
 	"""
@@ -171,14 +122,16 @@ class Character(tuple):
 		'navigation',
 		'function',
 		'mouse',
+		'scroll',
 	)
 
 	@property
-	def type(self):
+	def subtype(self):
 		"""
 		The classification of the character with respect to the source.
 		"""
 		return self[0]
+	type=subtype
 
 	@property
 	def string(self):
@@ -191,7 +144,7 @@ class Character(tuple):
 	def identity(self):
 		"""
 		A name for the &string contents; often the appropriate way to process
-		character events.
+		character events. For complex events, this field holds a structure.
 		"""
 		return self[2]
 
@@ -208,9 +161,8 @@ class Character(tuple):
 
 		Items are zero if there is no combining character at that index.
 		"""
-		global unicodedata
-
 		return map(unicodedata.combining, self[1])
+Character = Event
 
 class Position(object):
 	"""
