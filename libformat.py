@@ -4,7 +4,7 @@
 import os
 import sys
 import stat
-from ..internet import libri
+from ..internet import ri
 
 palette = {
 	'yellow': 0xffff87,
@@ -63,7 +63,7 @@ ri_colors = {
 }
 
 def f_ri(struct):
-	for t in libri.tokens(struct):
+	for t in ri.tokens(struct):
 		yield (t[1], (), ri_colors.get(t[0]))
 
 def route_is_link(route, islink=os.path.islink):
@@ -250,9 +250,9 @@ if __name__ == '__main__':
 	typ, *values = sys.argv[1:] # ri, path, ts, dir: libformat dir /
 
 	if typ == 'ri':
-		from ..internet import libri
+		from ..internet import ri
 		for x in values:
-			ri = libri.parse(x)
+			ri = ri.parse(x)
 			sys.stderr.buffer.write(dev.renderline(list(f_ri(ri))) + b'\n')
 	elif typ == 'path':
 		from ..routes import library as l
