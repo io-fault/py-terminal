@@ -37,128 +37,34 @@ route_colors = {
 }
 
 ri_colors = {
-	'http-scheme': palette['blue'],
-	'https-scheme': palette['blue'],
-	'scheme': palette['blue'],
 	'delimiter': 0x6c6c6c,
+	'scheme': palette['blue'],
+	'type': 0x6c6c6c,
 
 	'user': 0xff5f00,
 	'password': 0x5f0000,
 
 	'host': 0x875faf,
-	'ipv4-address': None,
-	'ipv6-address': None,
 	'port': 0x005f5f,
 
-	'root-segments': None,
-	'path': 0x6e6e6e,
+	'path-root': None,
+	'path-segment': 0x6e6e6e,
+	'delimiter-path-only': 0x6e6e6e,
+	'delimiter-path-initial': 0x6e6e6e,
+	'delimiter-path-root': 0x6e6e6e,
+	'delimiter-path-segments': 0x6e6e6e,
+	'delimiter-path-final': 0x6e6e6e,
 	'resource': 0xFFFFFF,
 
-	'query-highlight': palette['yellow'],
 	'query-key': 0x5fafff,
 	'query-value': 0x949494,
-	'hash-segment': None,
+	'fragment': 0x303030,
+	('delimiter', "#"): 0xFF0000,
 }
 
-ri_scheme_map = {
-	'http': 'http-scheme',
-	'https': 'https-scheme',
-}
-
-ri_delimiters = {
-	'relative': '//',
-	'authority': '://',
-	'absolute': ':',
-	'none': '',
-	None: '',
-}
-
-def f_authority(struct):
-	"""
-	#  Format the authority fields of a Resource Indicator.
-	"""
-	scheme_idx = ri_scheme_map.get(struct["scheme"], 'scheme')
-
-	if struct["scheme"]:
-		yield (struct["scheme"], (), ri_colors[scheme_idx])
-	yield (ri_delimiters[struct["type"]], (), ri_colors['delimiter'])
-
-	# Needs escaping.
-	user = struct.get("user", None)
-	if user is not None:
-		yield (str(user), (), ri_colors['user'])
-	pw = struct.get("password", None)
-	if pw is not None:
-		yield (':', (), ri_colors['delimiter'])
-		yield (str(pw), (), ri_colors['password'])
-	if user is not None:
-		yield ('@', (), ri_colors['delimiter'])
-
-	yield (struct["host"], (), ri_colors['host'])
-
-	port = struct.get("port", None)
-	if port is not None:
-		yield (':', (), ri_colors['delimiter'])
-		yield (str(port), (), ri_colors['port'])
-
-def f_ri_query(query, highlight=()):
-	if query is None:
-		return
-	kc = ri_colors['query-key']
-	vc = ri_colors['query-value']
-	hc = ri_colors['query-highlight']
-
-	yield ("?", (), ri_colors['delimiter'])
-
-	if query:
-		k, v = query[0]
-		yield (query[-1][0], (), kc)
-		yield ("=", (), None)
-		yield (v or '', (), hc if k in highlight else vc)
-
-	for k, v in query[:-1]:
-		yield (k, (), kc)
-		yield ("=", (), None)
-		yield (v or '', (), hc if k in highlight else vc)
-		yield ("&", (), None)
-
-def f_ri_fragment(fragment):
-	if fragment is None:
-		return
-	yield ("#", (), 0xFF0000)
-	yield (fragment, (), 0x303030)
-
-def f_ri_path(path, roots=0):
-	root = path[:roots]
-	lpath = path[roots:-1]
-	if path:
-		rsrc = path[-1]
-	else:
-		# Empty path.
-		rsrc = ''
-
-	root_str = libri.join_path(root)
-	segment = libri.join_path(lpath)
-	rsrc = libri.join_path((rsrc,))
-
-	if root_str:
-		yield ("/" + root_str, (), ri_colors['root-segments'])
-	if segment:
-		if rsrc is not None:
-			yield ("/" + segment + "/", (), ri_colors['path'])
-			yield (rsrc, (), ri_colors['resource'])
-		else:
-			yield ("/" + segment, (), ri_colors['path'])
-	elif rsrc is not None:
-		yield ("/", (), ri_colors['path'])
-		yield (rsrc, (), ri_colors['resource'])
-
-def f_ri(struct, highlight=()):
-	return \
-		list(f_authority(struct)) + \
-		list(f_ri_path(struct["path"]) if "path" in struct else ()) + \
-		list(f_ri_query(struct.get('query', None), highlight=highlight)) + \
-		list(f_ri_fragment(struct.get('fragment', None)))
+def f_ri(struct):
+	for t in libri.tokens(struct):
+		yield (t[1], (), ri_colors.get(t[0]))
 
 def route_is_link(route, islink=os.path.islink):
 	try:
