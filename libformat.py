@@ -1,5 +1,5 @@
 """
-#  Color formatting for file paths, URIs, and timestamps.
+# Color formatting for file paths, URIs, and timestamps.
 """
 import os
 import sys
@@ -72,11 +72,26 @@ def route_is_link(route, islink=os.path.islink):
 	except OSError:
 		return False
 
-def _f_route_path(route, _is_link=route_is_link):
+def _f_route_factor_type(route, ia_link=route_is_link):
+	idotpy = route / '__init__.py'
+	file_exists = idotpy.exists()
+	path = str(idotpy)
+	islink = ia_link(path)
+	if islink:
+		if os.readlink(path) == 'context/root.py':
+			return 'context'
+	else:
+		if file_exists:
+			if (route / '.git').exists():
+				return 'project'
+
+	return 'unqualified'
+
+def _f_route_path(root, route, _is_link=route_is_link):
 	tid = route.identifier
 	color = route_colors['path']
 
-	while route.container.identifier is not None:
+	while route.absolute != root.absolute and tid is not None:
 
 		if tid in {'.', '..'}:
 			yield ('/', (), color)
@@ -91,17 +106,10 @@ def _f_route_path(route, _is_link=route_is_link):
 		route = route.container
 		tid = route.identifier
 	else:
-		if _is_link(route):
-			yield ('/', (), 0x949494)
-			yield (tid, (), route_colors['path-link'])
-		else:
-			yield ('/', (), 0x949494)
-			yield (tid, (), 0xFFFFFF)
+		yield ('/', (), color)
 
-		yield ('/', (), 0xFFFFFF)
-
-def f_route_path(route):
-	l = list(_f_route_path(route))
+def f_route_path(root, route):
+	l = list(_f_route_path(root, route))
 	l.reverse()
 	return l
 
@@ -125,7 +133,21 @@ def f_route_identifier(route, warning=False):
 	return [(route.identifier, (), route_colors[t])]
 
 def f_route_absolute(route, warning=False):
-	return f_route_path(route.container) + f_route_identifier(route, warning=warning)
+	root = route
+	last = None
+	while root.container.identifier is not None:
+		ftyp = _f_route_factor_type(root)
+		if ftyp == 'context':
+			prefix = [(str(root), (), None)]
+			break
+		last = root
+		root = root.container
+	else:
+		# no context package in path
+		root = route.from_path('/')
+		prefix = []
+
+	return prefix + f_route_path(root, route.container) + f_route_identifier(route, warning=warning)
 
 # Maps directly to xterm 256-colors.
 behind = (
@@ -258,7 +280,7 @@ if __name__ == '__main__':
 		from ..routes import library as l
 		for x in values:
 			r = l.File.from_path(x)
-			sys.stderr.buffer.write(dev.renderline(list(f_route(r))) + b'\n')
+			sys.stderr.buffer.write(dev.renderline(list(f_route_absolute(r))) + b'\n')
 	elif typ == 'ts':
 		from ..chronometry import library as t
 		now = t.now()
