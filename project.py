@@ -1,4 +1,4 @@
-identity = 'http://fault.io/python/terminal'
+identity = 'http://fault.io/src/fault.terminal'
 name = 'terminal'
 abstract = 'Low-level toolkit for controlling terminal displays'
 icon = '🖥'
