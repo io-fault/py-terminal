@@ -31,6 +31,7 @@ route_colors = {
 	'root-segments': 0x4e4e4e,
 
 	'text/plain;pl=python': 0x875faf,
+	'text/plain;sf=fault.txt': 0x875faf,
 	'text/xml': 0x4e4e4e,
 
 	None: None,
@@ -121,12 +122,14 @@ def f_route_identifier(route, warning=False):
 		t = route.type()
 		rid = route.identifier
 		if t == 'file':
-		   if route.executable():
-			   t = 'executable'
-		   elif rid.endswith('.py'):
-			   t = 'text/plain;pl=python'
-		   elif rid[:1] == ".":
-			   t = 'dot-file'
+			if route.executable():
+				t = 'executable'
+			elif rid.endswith('.py'):
+				t = 'text/plain;pl=python'
+			elif rid == 'kfile':
+				t = 'text/plain;sf=fault.txt'
+			elif rid[:1] == ".":
+				t = 'dot-file'
 		elif t is None:
 			t = 'file-not-found'
 
