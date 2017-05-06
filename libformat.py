@@ -298,7 +298,7 @@ if __name__ == '__main__':
 		d, f = r.subnodes()
 		fn = max(map(len, map(str, f+d)), default=10) + 2
 
-		prefix = dev.renderline(f_route_path(r))
+		prefix = dev.renderline(f_route_path(r.from_absolute('/'), r))
 		for x in f + d:
 			try:
 				lm = x.get_last_modified()
