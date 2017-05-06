@@ -275,10 +275,9 @@ if __name__ == '__main__':
 	typ, *values = sys.argv[1:] # ri, path, ts, dir: libformat dir /
 
 	if typ == 'ri':
-		from ..internet import ri
 		for x in values:
-			ri = ri.parse(x)
-			sys.stderr.buffer.write(dev.renderline(list(f_ri(ri))) + b'\n')
+			i = ri.parse(x)
+			sys.stderr.buffer.write(dev.renderline(list(f_ri(i))) + b'\n')
 	elif typ == 'path':
 		from ..routes import library as l
 		for x in values:
