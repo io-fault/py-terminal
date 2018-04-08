@@ -84,5 +84,5 @@ def test_Position(test):
 	test/p.snapshot() == (10, 8, 19)
 
 if __name__ == '__main__':
-	import sys; from ...development import libtest
+	import sys; from ...test import library as libtest
 	libtest.execute(sys.modules[__name__])
