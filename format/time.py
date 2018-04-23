@@ -4,7 +4,7 @@
 # Formats timestamps with respect to another point in time to
 # illustrate the distance from the reference point.
 """
-from ...chronometry import metric
+from ...time import metric
 
 # Maps directly to xterm 256-colors.
 behind = (
@@ -123,7 +123,7 @@ def f_timestamp(relation, timestamp, precision='microsecond'):
 if __name__ == '__main__':
 	import sys
 	from .. import library as lt
-	from ...chronometry import library as t
+	from ...time import library as t
 	dev = lt.device.Display()
 	values = sys.argv[1:] # ri, path, ts, dir: libformat dir /
 
