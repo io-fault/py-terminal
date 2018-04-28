@@ -1,0 +1,16 @@
+/source/
+	`http://fault.io/src/python/terminal`
+/name/
+	`terminal`
+/abstract/
+	`Terminal control interfaces`
+/icon/
+	`🖥`
+/versioning/
+	continuous
+/status/
+	flux
+/controller/
+	`fault.io`
+/contact/
+	`mailto:critical@fault.io`
