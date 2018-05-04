@@ -58,6 +58,7 @@ characters = {
 
 	'universal-quantifier': '∀',
 	'there-exists': '∃',
+	'perpendicular': '\u27c2',
 }
 
 capitals = {
@@ -142,6 +143,9 @@ mapping = {
 
 	';': 'infinity',
 	':': 'sine',
+	'|': 'perpendicular',
+	'@': 'universal-quantifier',
+	'$': 'there-exists',
 }
 
 def select(char, tables={False:capitals, True:characters}):
