@@ -1,5 +1,5 @@
 /**
-	Cell usage count for string display.
+	# Cell usage count for string display.
 */
 #include <wchar.h>
 
@@ -20,7 +20,9 @@ cells(PyObj self, PyObj str)
 		return(NULL);
 	}
 
-	/* Fast path for ascii strings. */
+	/**
+	# Fast path for ascii strings.
+	*/
 	if (PyUnicode_IS_ASCII(str))
 	{
 		return(PyLong_FromSsize_t(PyUnicode_GET_SIZE(str)));

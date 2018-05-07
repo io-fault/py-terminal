@@ -152,7 +152,7 @@ def scale(n, target = (1, 100), origin = (0, 0xFFFFFFFF), divmod = divmod):
 
 def offsets(text_sequence, *indexes, iter=iter, len=len, next=next, cells=cells):
 	"""
-	##  Get the cell offset of the given character indexes.
+	# Get the cell offset of the given character indexes.
 	"""
 	offset = 0
 	nc = 0
