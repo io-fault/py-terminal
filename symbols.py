@@ -4,7 +4,8 @@
 
 horizontal_progress = ' ▏▎▎▍▌▋▊▉█'
 vertical_progress = ' ▁▂▃▄▅▆▇█'
-quadrants = '▖▘▝▗'
+quadrants = '\u2596\u259F' # start and stop characters in the unicode range
+
 wands = "/-\\|"
 
 suits = {
@@ -149,6 +150,14 @@ intersections = {
 	'left': '├',
 	'right': '┤',
 }
+
+bold = (
+	'┏' '━' '┳' '━' '┓'
+	'┃' ' ' '┃' ' ' '┃'
+	'┣' '━' '╋' '━' '┫'
+	'┃' ' ' '┃' ' ' '┃'
+	'┗' '━' '┻' '━' '┛'
+)
 
 regular = (
 	'┌' '─' '┬' '─' '┐'
