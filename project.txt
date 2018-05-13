@@ -1,15 +1,21 @@
-/source/
-	`http://fault.io/src/python/terminal`
+! CONTEXT:
+	/protocol/
+		&<http://if.fault.io/project>
+
+/identifier/
+	`http://fault.io/python/terminal`
 /name/
 	`terminal`
 /abstract/
-	`Terminal control interfaces`
+	Terminal control interfaces
 /icon/
 	`🖥`
+
 /versioning/
 	continuous
 /status/
 	flux
+
 /controller/
 	`fault.io`
 /contact/
