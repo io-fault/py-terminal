@@ -82,13 +82,21 @@ escape_codes = {
 
 	'[H': Char(('navigation', '[H', 'home', zero)),
 	'[F': Char(('navigation', '[F', 'end', zero)),
+	'[1~': Char(('navigation', '[1~', 'home', zero)),
+	'[4~': Char(('navigation', '[4~', 'end', zero)),
 	'[5~': Char(('navigation', '[5~', 'pageup', zero)),
 	'[6~': Char(('navigation', '[6~', 'pagedown', zero)),
 
+	# VT100 compat
 	'OP': Char(('function', 'OP', 1, zero)),
 	'OQ': Char(('function', 'OQ', 2, zero)),
 	'OR': Char(('function', 'OR', 3, zero)),
 	'OS': Char(('function', 'OS', 4, zero)),
+
+	'[11~': Char(('function', '[11~', 1, zero)),
+	'[12~': Char(('function', '[12~', 2, zero)),
+	'[13~': Char(('function', '[13~', 3, zero)),
+	'[14~': Char(('function', '[14~', 4, zero)),
 	'[15~': Char(('function', '[15~', 5, zero)),
 	'[17~': Char(('function', '[17~', 6, zero)),
 	'[18~': Char(('function', '[18~', 7, zero)),
@@ -126,7 +134,7 @@ def render_codes():
 
 	# page up and page down
 	formatting = '[%s;%d~'
-	for key in (('5', 'page-up'), ('6', 'page-down')):
+	for key in (('5', 'page-up'), ('6', 'page-down'), ('1', 'home'), ('4', 'end')):
 		num, name = key
 		escape_codes.update([
 			(x.string[1:], x) for x in (
@@ -146,21 +154,9 @@ def render_codes():
 			)
 		])
 
-	# function keys 1-4
-	formatting = '[1;%d%s'
-	chars = ('P', 'Q', 'R', 'S')
-	for i in range(4):
-		char = chars[i]
-		escape_codes.update([
-			(x.string[1:], x) for x in (
-				core.Character(('function', formatting % (n, char), i+1, mods))
-				for n, mods in modifier_sequence
-			)
-		])
-
-	# function keys 5-12
-	formatting = '[%d;%d~'
-	for kid, fn in zip((15, 17, 18, 19, 20, 21, 23, 24), range(5, 12)):
+	# modern function keys
+	formatting = '[%d~%d'
+	for kid, fn in zip((11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24), range(1, 13)):
 		escape_codes.update([
 			(x.string[1:], x) for x in (
 				core.Character(('function', formatting % (kid, n), fn, mods))
