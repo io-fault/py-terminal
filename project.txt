@@ -9,7 +9,7 @@
 /abstract/
 	Terminal control interfaces
 /icon/
-	`🖥`
+	- (emoji)`🖥`
 
 /versioning/
 	continuous
