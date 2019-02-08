@@ -377,6 +377,22 @@ class Display(object):
 	def encode(self, escseq_param, str = str):
 		return str(escseq_param).encode(self.encoding)
 
+	def draw_unit_vertical(self, character):
+		c = character.encode(self.encoding)
+		if character:
+			l = character.__len__()
+			c += self.seek_horizontal_relative(-l) + self.seek_vertical_relative(1)
+		return c
+
+	def draw_unit_horizontal(self, character):
+		return character.encode(self.encoding)
+
+	def draw_segment_vertical(self, unit, length):
+		return self.draw_unit_vertical(unit) * length
+
+	def draw_segment_horizontal(self, unit, length):
+		return self.draw_unit_horizontal(unit) * length
+
 	def escape(self, terminator, *parts):
 		return self.escape_sequence + self.join(parts) + terminator
 
