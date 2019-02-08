@@ -374,7 +374,7 @@ class Display(object):
 	def __init__(self, encoding = 'utf-8'):
 		self.encoding = encoding
 
-	def encode(self, escseq_param, str = str):
+	def encode(self, escseq_param, str=str):
 		return str(escseq_param).encode(self.encoding)
 
 	def draw_unit_vertical(self, character):
@@ -422,16 +422,12 @@ class Display(object):
 		return b';'.join(map(self.encode, (r, g, b)))
 
 	def background(self, color, select_background=select_background):
-		"Change the background color."
-
 		translation = palette.translate(color)
 		strcode = palette.code_string(translation)
 
 		return (select_background, strcode)
 
 	def foreground(self, color, select_foreground=select_foreground_rgb):
-		"Change the foreground color."
-
 		#translation = palette.translate(color)
 		#strcode = palette.code_string(translation)
 
@@ -524,7 +520,6 @@ class Display(object):
 		return self.escape(self.encode(times) + b'@')
 
 	def seek_absolute(self, coordinates):
-		'mechanics used by seek method. (use &seek)'
 		h, v = coordinates
 		return self.escape(b'H', self.encode(v+1), self.encode(h+1))
 
@@ -541,11 +536,9 @@ class Display(object):
 		return self.seek((0, lineno))
 
 	def seek_start_of_line(self):
-		'Return the beginning of the line'
 		return b'\r'
 
 	def seek_horizontal_relative(self, n):
-		'Horizontally adjust the caret (relative)'
 		if n < 0:
 			return self.escape(b'D', self.encode(-n))
 		elif n > 0:
@@ -554,7 +547,6 @@ class Display(object):
 			return b''
 
 	def seek_vertical_relative(self, n):
-		'Vertically adjust the caret (relative)'
 		if n < 0:
 			return self.escape(b'A', self.encode(-n))
 		elif n > 0:
@@ -573,18 +565,15 @@ class Display(object):
 		return self.seek_next_line() + self.seek_start_of_line()
 
 	def clear(self):
-		'Clear the entire area.'
 		return self.escape(b'H') + self.escape(b'2J')
 
 	def clear_line(self, lineno):
 		return self.seek_line(lineno) + self.clear_current_line()
 
 	def clear_to_line(self, n = 1):
-		'Clear the lines to a relative number.'
 		return self.escape(self.encode(n) + b'J')
 
 	def clear_to_bottom(self):
-		'Clear to the end of screen from the caret.'
 		return self.escape(b'J')
 
 	def clear_before_caret(self):
