@@ -55,20 +55,21 @@ style_codes = {
 
 Char = core.Character
 zero = core.Modifiers.construct()
+Mod = core.Modifiers.construct
 # Escape codes mapped to constructed Key presses.
 escape_codes = {
 	'': Char(('control', '', 'escape', zero)),
-	' ': Char(('control', ' ', 'space', core.Modifiers.construct(meta=True))),
-	'\t': Char(('control', '\t', 'tab', core.Modifiers.construct(meta=True))),
-	'[Z': Char(('control', '[Z', 'tab', core.Modifiers.construct(shift=True))),
-	'[Z': Char(('control', '[Z', 'tab', core.Modifiers.construct(shift=True, meta=True))),
+	' ': Char(('control', ' ', 'space', Mod(meta=True))),
+	'\t': Char(('control', '\t', 'tab', Mod(meta=True))),
+	'[Z': Char(('control', '[Z', 'tab', Mod(shift=True))),
+	'[Z': Char(('control', '[Z', 'tab', Mod(shift=True, meta=True))),
 	'OM': Char(('control', 'OM', 'enter', zero)),
 
-	'\x7f': Char(('delta', '\x7f', 'delete', core.Modifiers.construct(meta=True))),
-	'\b': Char(('delta', '\b', 'backspace', core.Modifiers.construct(meta=True))),
+	'\x7f': Char(('delta', '\x7f', 'delete', Mod(meta=True))),
+	'\b': Char(('delta', '\b', 'backspace', Mod(meta=True))),
 
-	'[2~': Char(('delta', '[2~', 'insert', core.Modifiers.construct(meta=False))),
-	'[3~': Char(('delta', '[3~', 'delete', core.Modifiers.construct(meta=False))),
+	'[2~': Char(('delta', '[2~', 'insert', Mod(meta=False))),
+	'[3~': Char(('delta', '[3~', 'delete', Mod(meta=False))),
 
 	'[A': Char(('navigation', '[A', 'up', zero)),
 	'[B': Char(('navigation', '[B', 'down', zero)),
@@ -116,11 +117,11 @@ del zero
 # build out the codes according to the available patterns
 def render_codes():
 	modifier_sequence = tuple(zip((2,3,5,6,7), (
-		core.Modifiers.construct(shift=True),
-		core.Modifiers.construct(meta=True),
-		core.Modifiers.construct(control=True),
-		core.Modifiers.construct(shift=True, control=True),
-		core.Modifiers.construct(control=True, meta=True),
+		Mod(shift=True),
+		Mod(meta=True),
+		Mod(control=True),
+		Mod(shift=True, control=True),
+		Mod(control=True, meta=True),
 	)))
 
 	# insert and delete
@@ -187,7 +188,6 @@ def render_codes():
 render_codes()
 del render_codes
 
-Modifier = core.Modifiers.construct
 control_characters = dict(
 	# Some of these get overridden with their
 	# common representation. (newline, backspace, etc)
@@ -208,7 +208,7 @@ control_characters = dict(
 			'', '',
 		),
 		(
-			Char(('control', x, x, Modifier(control=True)))
+			Char(('control', x, x, Mod(control=True)))
 			for x in map(chr, range(ord('a'), ord('z')+1))
 		)
 	)
@@ -216,22 +216,22 @@ control_characters = dict(
 
 # Override any of the control characters with the common representation.
 control_characters.update({
-	'\x00': Char(('control', '\x00', 'nul', Modifier(control=False))),
+	'\x00': Char(('control', '\x00', 'nul', Mod(control=False))),
 
-	'\x7f': Char(('delta', '\x7f', 'delete', Modifier(control=False))),
-	'\b': Char(('delta', '\b', 'backspace', Modifier(control=False))),
+	'\x7f': Char(('delta', '\x7f', 'delete', Mod(control=False))),
+	'\b': Char(('delta', '\b', 'backspace', Mod(control=False))),
 
-	' ': Char(('control', ' ', 'space', Modifier(control=False))),
+	' ': Char(('control', ' ', 'space', Mod(control=False))),
 
-	'\t': Char(('control', '\t', 'tab', Modifier(control=False))),
-	'\r': Char(('control', '\r', 'return', Modifier(control=False))),
-	'\n': Char(('control', '\n', 'newline', Modifier(control=False))),
+	'\t': Char(('control', '\t', 'tab', Mod(control=False))),
+	'\r': Char(('control', '\r', 'return', Mod(control=False))),
+	'\n': Char(('control', '\n', 'newline', Mod(control=False))),
 
-	'': Char(('control', '', 'bracket', Modifier(control=True))),
-	'': Char(('control', '', 'backslash', Modifier(control=True))),
-	'': Char(('control', '', 'underscore', Modifier(control=True))),
+	'': Char(('control', '', 'bracket', Mod(control=True))),
+	'': Char(('control', '', 'backslash', Mod(control=True))),
+	'': Char(('control', '', 'underscore', Mod(control=True))),
 })
-del Char, Modifier
+del Char, Mod
 
 @functools.lru_cache(32)
 def literal(k, Character = core.Character,
