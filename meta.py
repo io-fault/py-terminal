@@ -59,6 +59,8 @@ characters = {
 	'universal-quantifier': '∀',
 	'there-exists': '∃',
 	'perpendicular': '\u27c2',
+
+	'question': '¿',
 }
 
 capitals = {
@@ -121,7 +123,7 @@ mapping = {
 	'v': 'phi',
 	'c': 'xi',
 
-	'q': '',
+	'q': 'question', # inverted q-mark
 	'f': 'function', # integral capital
 
 	'<': 'less',
