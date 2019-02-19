@@ -13,9 +13,6 @@
 import array
 import collections
 import functools
-import fcntl
-import tty
-import termios
 import itertools
 
 from . import core
@@ -676,33 +673,3 @@ class Display(object):
 			buf += self.seek_horizontal_relative(offset)
 			buf += self.style(styles)
 		return buf
-
-def set_raw(fd, path=path):
-	"""
-	# Set raw mode and return the previous settings.
-	"""
-	tty.setcbreak(fd)
-	tty.setraw(fd)
-	new = termios.tcgetattr(fd)
-	new[3] = new[3] & ~(termios.ECHO|termios.ICRNL)
-	termios.tcsetattr(fd, termios.TCSADRAIN, new)
-
-def settings_snapshot(fd):
-	"""
-	# Get the current terminal settings.
-	"""
-	return termios.tcgetattr(fd)
-
-def settings_restore(fd, stored_settings, path=path):
-	"""
-	# Apply the given settings.
-	"""
-	return termios.tcsetattr(fd, termios.TCSADRAIN, stored_settings)
-
-def dimensions(fd, winsize=array.array("h", [0,0,0,0])):
-	"""
-	# Dimensions of the physical terminal.
-	"""
-	winsize = winsize * 1 # get a new array instance
-	fcntl.ioctl(fd, termios.TIOCGWINSZ, winsize, True)
-	return (winsize[1], winsize[0])
