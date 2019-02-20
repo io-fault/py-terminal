@@ -2,11 +2,6 @@
 # Fundamental classes for representing input from a terminal and managing state.
 """
 import functools
-import unicodedata
-
-# Process global state for managing the controlling [logical] process.
-__control_requests__ = []
-__control_residual__ = []
 
 class Point(tuple):
 	"""
@@ -113,6 +108,7 @@ class Modifiers(int):
 class Event(tuple):
 	"""
 	# A single characeter from input event from a terminal device.
+	# Usually referenced from &.events.Character along with the lookup tables.
 	"""
 	__slots__ = ()
 
@@ -154,15 +150,6 @@ class Event(tuple):
 		# The identified &Modifiers of the Character.
 		"""
 		return self[3]
-
-	def combining(self):
-		"""
-		# The sequence of combining character data.
-
-		# Items are zero if there is no combining character at that index.
-		"""
-		return map(unicodedata.combining, self[1])
-Character = Event
 
 class Position(object):
 	"""
