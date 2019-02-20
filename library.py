@@ -96,20 +96,6 @@ def restore_at_exit(path = device.path):
 
 	atexit.register(_restore_terminal)
 
-def request_control(controller):
-	"""
-	# Request exclusive control of the terminal.
-	# Often used as a effect of to a SIGTIN or SIGTOUT signal for the would be foreground.
-
-	# Primarily used by shell implementations and multi-facet processes.
-	"""
-
-def residual_control(controller):
-	"""
-	# Identify the controller as residual having the effect that it registers itself
-	# as taking control after outstanding requests have relinquished their ownership.
-	"""
-
 def scale(n, target = (1, 100), origin = (0, 0xFFFFFFFF), divmod = divmod):
 	"""
 	# Given a number, target range, and a origin range. Project the number
