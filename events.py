@@ -189,12 +189,8 @@ control_characters.update({
 del Char, Mod
 
 @functools.lru_cache(32)
-def literal(k, Character = core.Character,
-		none = core.Modifiers(0),
-		shift = core.Modifiers.construct(shift=True),
-	):
-	id = k.lower()
-	return Character(('literal', k, id, none))
+def literal(k, Character=core.Character, none=core.Modifiers(0)):
+	return Character(('literal', k, k, none))
 
 def literal_events(data):
 	"""
@@ -268,7 +264,7 @@ def escaped_events(string, Character = core.Character):
 			# mouse event
 			return mouse(string)
 		else:
-			return Character(('escaped', string, string.lower(), core.Modifiers(0)))
+			return Character(('escaped', string, string, core.Modifiers(0)))
 
 def construct_character_events(data, escape = '\x1b'):
 	"""
