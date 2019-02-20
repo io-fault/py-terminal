@@ -479,8 +479,10 @@ class Vector(object):
 				vector.move(x, f(x))
 				draw(vector)
 		"""
-		self.horizontal.update(x)
-		self.vertical.update(y)
+		if x:
+			self.horizontal.update(x)
+		if y:
+			self.vertical.update(y)
 
 	def get(self):
 		"""
