@@ -4,21 +4,22 @@
 import functools
 
 from . import core
-Character = core.Character
+Character = core.Event
 Modifiers = core.Modifiers
+Point = core.Point
 
-Char = core.Character
-zero = core.Modifiers.construct()
-Mod = core.Modifiers.construct
+Char = Character
+Mod = Modifiers.construct
+Zero = Mod(0)
 
 # Escape codes mapped to constructed Key presses.
 escape_codes = {
-	'': Char(('control', '', 'escape', zero)),
+	'': Char(('control', '', 'escape', Zero)),
 	' ': Char(('control', ' ', 'space', Mod(meta=True))),
 	'\t': Char(('control', '\t', 'tab', Mod(meta=True))),
 	'[Z': Char(('control', '[Z', 'tab', Mod(shift=True))),
 	'[Z': Char(('control', '[Z', 'tab', Mod(shift=True, meta=True))),
-	'OM': Char(('control', 'OM', 'enter', zero)),
+	'OM': Char(('control', 'OM', 'enter', Zero)),
 
 	'\x7f': Char(('delta', '\x7f', 'delete', Mod(meta=True))),
 	'\b': Char(('delta', '\b', 'backspace', Mod(meta=True))),
@@ -26,51 +27,51 @@ escape_codes = {
 	'[2~': Char(('delta', '[2~', 'insert', Mod(meta=False))),
 	'[3~': Char(('delta', '[3~', 'delete', Mod(meta=False))),
 
-	'[A': Char(('navigation', '[A', 'up', zero)),
-	'[B': Char(('navigation', '[B', 'down', zero)),
-	'[C': Char(('navigation', '[C', 'right', zero)),
-	'[D': Char(('navigation', '[D', 'left', zero)),
+	'[A': Char(('navigation', '[A', 'up', Zero)),
+	'[B': Char(('navigation', '[B', 'down', Zero)),
+	'[C': Char(('navigation', '[C', 'right', Zero)),
+	'[D': Char(('navigation', '[D', 'left', Zero)),
 
-	'OA': Char(('navigation', 'OA', 'up', zero)),
-	'OB': Char(('navigation', 'OB', 'down', zero)),
-	'OC': Char(('navigation', 'OC', 'right', zero)),
-	'OD': Char(('navigation', 'OD', 'left', zero)),
+	'OA': Char(('navigation', 'OA', 'up', Zero)),
+	'OB': Char(('navigation', 'OB', 'down', Zero)),
+	'OC': Char(('navigation', 'OC', 'right', Zero)),
+	'OD': Char(('navigation', 'OD', 'left', Zero)),
 
-	'[H': Char(('navigation', '[H', 'home', zero)),
-	'[F': Char(('navigation', '[F', 'end', zero)),
-	'[1~': Char(('navigation', '[1~', 'home', zero)),
-	'[4~': Char(('navigation', '[4~', 'end', zero)),
-	'[5~': Char(('navigation', '[5~', 'pageup', zero)),
-	'[6~': Char(('navigation', '[6~', 'pagedown', zero)),
+	'[H': Char(('navigation', '[H', 'home', Zero)),
+	'[F': Char(('navigation', '[F', 'end', Zero)),
+	'[1~': Char(('navigation', '[1~', 'home', Zero)),
+	'[4~': Char(('navigation', '[4~', 'end', Zero)),
+	'[5~': Char(('navigation', '[5~', 'pageup', Zero)),
+	'[6~': Char(('navigation', '[6~', 'pagedown', Zero)),
 
 	# VT100 compat
-	'OP': Char(('function', 'OP', 1, zero)),
-	'OQ': Char(('function', 'OQ', 2, zero)),
-	'OR': Char(('function', 'OR', 3, zero)),
-	'OS': Char(('function', 'OS', 4, zero)),
+	'OP': Char(('function', 'OP', 1, Zero)),
+	'OQ': Char(('function', 'OQ', 2, Zero)),
+	'OR': Char(('function', 'OR', 3, Zero)),
+	'OS': Char(('function', 'OS', 4, Zero)),
 
-	'[11~': Char(('function', '[11~', 1, zero)),
-	'[12~': Char(('function', '[12~', 2, zero)),
-	'[13~': Char(('function', '[13~', 3, zero)),
-	'[14~': Char(('function', '[14~', 4, zero)),
-	'[15~': Char(('function', '[15~', 5, zero)),
-	'[17~': Char(('function', '[17~', 6, zero)),
-	'[18~': Char(('function', '[18~', 7, zero)),
-	'[19~': Char(('function', '[19~', 8, zero)),
-	'[20~': Char(('function', '[20~', 9, zero)),
-	'[21~': Char(('function', '[21~', 10, zero)),
-	'[23~': Char(('function', '[23~', 11, zero)),
-	'[24~': Char(('function', '[24~', 12, zero)),
-	'[29~': Char(('function', '[29~', 'applications', zero)),
-	'[34~': Char(('function', '[34~', 'windows', zero)),
+	'[11~': Char(('function', '[11~', 1, Zero)),
+	'[12~': Char(('function', '[12~', 2, Zero)),
+	'[13~': Char(('function', '[13~', 3, Zero)),
+	'[14~': Char(('function', '[14~', 4, Zero)),
+	'[15~': Char(('function', '[15~', 5, Zero)),
+	'[17~': Char(('function', '[17~', 6, Zero)),
+	'[18~': Char(('function', '[18~', 7, Zero)),
+	'[19~': Char(('function', '[19~', 8, Zero)),
+	'[20~': Char(('function', '[20~', 9, Zero)),
+	'[21~': Char(('function', '[21~', 10, Zero)),
+	'[23~': Char(('function', '[23~', 11, Zero)),
+	'[24~': Char(('function', '[24~', 12, Zero)),
 
-	'[200~': Char(('paste', '[200~', 'start', zero)),
-	'[201~': Char(('paste', '[201~', 'stop', zero)),
+	'[29~': Char(('function', '[29~', 'applications', Zero)),
+	'[34~': Char(('function', '[34~', 'windows', Zero)),
+
+	'[200~': Char(('paste', '[200~', 'start', Zero)),
+	'[201~': Char(('paste', '[201~', 'stop', Zero)),
 }
-del zero
 
 # build out the codes according to the available patterns
-def render_codes():
+def build_event_table():
 	modifier_sequence = tuple(zip((2,3,5,6,7), (
 		Mod(shift=True),
 		Mod(meta=True),
@@ -83,7 +84,7 @@ def render_codes():
 	for formatting, ident in (('[2;%d~', 'insert'), ('[3;%d~', 'delete')):
 		escape_codes.update([
 			(x.string[1:], x) for x in (
-				core.Character(('delta', formatting %(n,), ident, mods))
+				Char(('delta', formatting %(n,), ident, mods))
 				for n, mods in modifier_sequence
 			)
 		])
@@ -94,7 +95,7 @@ def render_codes():
 		num, name = key
 		escape_codes.update([
 			(x.string[1:], x) for x in (
-				core.Character(('navigation', formatting % (num, n), key[1], mods))
+				Char(('navigation', formatting % (num, n), key[1], mods))
 				for n, mods in modifier_sequence
 			)
 		])
@@ -105,7 +106,7 @@ def render_codes():
 		kid, name = key
 		escape_codes.update([
 			(x.string[1:], x) for x in (
-				core.Character(('navigation', formatting % (n, kid), key[1], mods))
+				Char(('navigation', formatting % (n, kid), key[1], mods))
 				for n, mods in modifier_sequence
 			)
 		])
@@ -115,7 +116,7 @@ def render_codes():
 	for kid, fn in zip((11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24), range(1, 13)):
 		escape_codes.update([
 			(x.string[1:], x) for x in (
-				core.Character(('function', formatting % (kid, n), fn, mods))
+				Char(('function', formatting % (kid, n), fn, mods))
 				for n, mods in modifier_sequence
 			)
 		])
@@ -125,7 +126,7 @@ def render_codes():
 	for kid, fn in zip((15, 17, 18, 19, 20, 21, 23, 24), range(5, 12)):
 		escape_codes.update([
 			(x.string[1:], x) for x in (
-				core.Character(('function', formatting % (kid, n), fn, mods))
+				Char(('function', formatting % (kid, n), fn, mods))
 				for n, mods in modifier_sequence
 			)
 		])
@@ -134,14 +135,14 @@ def render_codes():
 	for name, kid in zip(('applications', 'windows'), (29, 34)):
 		escape_codes.update([
 			(x.string[1:], x) for x in (
-				core.Character(('function', formatting % (kid, n), name, mods))
+				Char(('function', formatting % (kid, n), name, mods))
 				for n, mods in modifier_sequence
 			)
 		])
 
 # keep it in a function to avoid littering on the module locals
-render_codes()
-del render_codes
+build_event_table()
+del build_event_table
 
 control_characters = dict(
 	# Some of these get overridden with their
@@ -186,11 +187,10 @@ control_characters.update({
 	'': Char(('control', '', 'backslash', Mod(control=True))),
 	'': Char(('control', '', 'underscore', Mod(control=True))),
 })
-del Char, Mod
 
 @functools.lru_cache(32)
-def literal(k, Character=core.Character, none=core.Modifiers(0)):
-	return Character(('literal', k, k, none))
+def literal(k, Character=Character, Zero=Zero):
+	return Character(('literal', k, k, Zero))
 
 def literal_events(data):
 	"""
@@ -203,7 +203,10 @@ def literal_events(data):
 	)
 
 @functools.lru_cache(16)
-def point(x, y, Type=core.Point):
+def point(x, y, Type=Point):
+	"""
+	# Build a &core.Point for describing mount events.
+	"""
 	return Type((x,y))
 
 @functools.lru_cache(16)
@@ -246,13 +249,13 @@ def mouse(string):
 	meta = mods & 8
 	control = mods & 16
 
-	return core.Character((
+	return Character((
 		event, string,
 		(point(mx, my), act, mods & 0b11),
-		core.Modifiers.construct(shift=shift, meta=meta, control=control),
+		Modifiers.construct(shift=shift, meta=meta, control=control),
 	))
 
-def escaped_events(string, Character = core.Character):
+def escaped_events(string, Character=Character, Zero=Zero):
 	"""
 	# Resolve the Key instance for the given string instance.
 	"""
@@ -264,7 +267,7 @@ def escaped_events(string, Character = core.Character):
 			# mouse event
 			return mouse(string)
 		else:
-			return Character(('escaped', string, string, core.Modifiers(0)))
+			return Character(('escaped', string, string, Zero))
 
 def construct_character_events(data, escape = '\x1b'):
 	"""
@@ -311,3 +314,5 @@ def construct_character_events(data, escape = '\x1b'):
 	else:
 		# empty keys
 		return []
+
+del Char, Mod
