@@ -4,13 +4,14 @@
 import sys
 import os
 from .. import library
+from .. import events
 from ...system.tty import Device
 
 def loop():
 	while True:
 		data = os.read(0, 128)
 		string = data.decode('utf-8')
-		for k in library.construct_character_events(string):
+		for k in events.construct_character_events(string):
 			print(repr(k) + '\r')
 			if k.modifiers.control == True and k.identity == 'c':
 				sys.exit(1)

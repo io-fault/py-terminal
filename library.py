@@ -17,13 +17,13 @@
 # manage terminal access for concurrent jobs.
 
 # Coloring:
-	# /textcolor
+	# /textcolor/
 		# Foreground color.
-	# /cellcolor
+	# /cellcolor/
 		# Uppermost background color. (opacity mixing?)
-	# /foreground
+	# /foreground/
 		# Default text color.
-	# /background
+	# /background/
 		# Default cell color.
 """
 import sys
@@ -42,12 +42,9 @@ from . import core
 from . import device
 from .text import cells
 
-Character = core.Character
-Modifiers = core.Modifiers
 Point = core.Point
 Position = core.Position
 Vector = core.Vector
-construct_character_events = device.construct_character_events
 
 pastels = {
 	'purple': 0x875fff,

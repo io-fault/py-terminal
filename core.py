@@ -170,11 +170,11 @@ class Position(object):
 	# Constraints are not enforced in order to allow the user to leverage the overflow.
 
 	# [ Properties ]
-	# /(&int)datum
+	# /datum/
 		# The absolute position.
-	# /(&int)offset
+	# /offset/
 		# The actual position relative to the &datum.
-	# /(&int)magnitude
+	# /magnitude/
 		# The size of the range relative to the &datum.
 	"""
 	@property
