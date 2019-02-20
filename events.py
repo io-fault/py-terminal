@@ -255,7 +255,7 @@ def mouse(string):
 		Modifiers.construct(shift=shift, meta=meta, control=control),
 	))
 
-def escaped_events(string, Character=Character, Zero=Zero):
+def escaped_characters(string, Character=Character, Zero=Zero):
 	"""
 	# Resolve the Key instance for the given string instance.
 	"""
@@ -286,7 +286,7 @@ def construct_character_events(data, escape = '\x1b'):
 		# Escape Code to map control characters.
 
 		if first > 0:
-			events = [escaped_events(data[:first])]
+			events = [escaped_characters(data[:first])]
 		else:
 			events = []
 
@@ -304,12 +304,12 @@ def construct_character_events(data, escape = '\x1b'):
 			if not x:
 				escape_level += 1
 			else:
-				events.append(escaped_events((escape * escape_level) + x))
+				events.append(escaped_characters((escape * escape_level) + x))
 				escape_level = 0
 		else:
 			# handle the trailing escapes
 			if escape_level:
-				events.append(escaped_events(escape * escape_level))
+				events.append(escaped_characters(escape * escape_level))
 		return events
 	else:
 		# empty keys
