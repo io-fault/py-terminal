@@ -269,12 +269,10 @@ def escaped_characters(string, Character=Character, Zero=Zero):
 		else:
 			return Character(('escaped', string, string, Zero))
 
-def construct_character_events(data, escape = '\x1b'):
+def construct_character_events(data:str, escape='\x1b', iter=iter, next=next):
 	"""
 	# Resolve the key events for the binary input read from a terminal.
 	"""
-	# Some keys are represented literally and some
-	# use escape encoding, "\x1b[...".
 
 	first = data.find(escape)
 

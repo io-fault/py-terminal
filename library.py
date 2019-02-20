@@ -49,7 +49,6 @@ Vector = core.Vector
 pastels = {
 	'purple': 0x875fff,
 	'blue': 0x0087d7,
-	#'cyan': 0x6d889a, metallic green
 	'cyan': 0x6b9aea,
 	'green': 0x77DD77,
 	'magenta': 0xF49AC2,
@@ -59,6 +58,7 @@ pastels = {
 	'yellow': 0xFDFD96,
 	'red': 0xFF6961,
 	'gray': 0xCFCFC4,
+	#'cyan': 0x6d889a, metallic green
 	#'blue-green': 0x0D98BA,
 	#'pink': 0xDEA5A4, dark pink
 	#'red': 0xD75F5F, dark red
