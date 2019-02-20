@@ -1,11 +1,14 @@
 """
-# Fundamental classes for representing input from a terminal and managing state.
+# Fundamental classes for representing input from a terminal and caret state management.
 """
 import functools
 
 class Point(tuple):
 	"""
 	# A pair of integers locating a cell on the screen.
+	# Used by &.events.mouse to specify the cursor location.
+
+	# Usually referenced from &.events.Point.
 	"""
 	__slots__ = ()
 
@@ -40,6 +43,8 @@ class Modifiers(int):
 
 	# The imaginary index is usually not used, but can be used to describe
 	# the modifier context or carry additional information about the event.
+
+	# Usually referenced from &.events.Modifiers.
 	"""
 	__slots__ = ()
 
@@ -62,6 +67,9 @@ class Modifiers(int):
 
 	@property
 	def none(self):
+		"""
+		# Whether there are any modifiers present.
+		"""
 		return not (self & 0b111)
 
 	@property
@@ -85,6 +93,15 @@ class Modifiers(int):
 		return int(self >> position)
 
 	def test(self, *fields):
+		"""
+		# Check for the presence of multiple modifiers.
+
+		#!/pl/python
+			if mod.test('shift', 'meta'):
+				action()
+			else:
+				no_shift_meta_action()
+		"""
 		bitset = sum([self.bits[x] for x in fields])
 		return bool(bitset & self)
 
@@ -108,17 +125,18 @@ class Modifiers(int):
 class Event(tuple):
 	"""
 	# A single characeter from input event from a terminal device.
+
 	# Usually referenced from &.events.Character along with the lookup tables.
 	"""
 	__slots__ = ()
 
 	classifications = (
-		'control',
-		'manipulation',
-		'navigation',
-		'function',
-		'mouse',
+		'control', # Control Character
+		'delta', # Insert/Delete keys
+		'navigation', # Arrow/Paging keys
+		'function', # F-keys
 		'scroll',
+		'mouse',
 	)
 
 	@property
@@ -154,15 +172,15 @@ class Event(tuple):
 class Position(object):
 	"""
 	# Mutable position state for managing the position of a cursor with respect to a range.
-	# Constraints are not enforced in order to allow the user to leverage the overflow.
+	# No constraints are enforced and position coherency is considered subjective.
 
 	# [ Properties ]
 	# /datum/
-		# The absolute position.
+		# The absolute position. (start)
 	# /offset/
-		# The actual position relative to the &datum.
+		# The actual position relative to the &datum. (current)
 	# /magnitude/
-		# The size of the range relative to the &datum.
+		# The size of the range relative to the &datum. (stop)
 	"""
 	@property
 	def minimum(self):
@@ -441,21 +459,25 @@ class Position(object):
 
 class Vector(object):
 	"""
-	# A pair of &Position instances describing a two dimensional area and point.
+	# A pair of &Position instances describing an area and point on a two dimensional plane.
 
 	# Primarily this exists to provide methods that will often be used simultaneously on the vertical
 	# and horizontal positions. State snapshots and restoration being common or likely.
 
-	# [ Engineering ]
-	# This should probably be a tuple subclass.
+	# [ Properties ]
+	# /horizontal/
+		# The horizontal &Position.
+	# /vertical/
+		# The vertical &Position.
 	"""
+
 	def __len__(self):
 		return 2
 
 	def __getitem__(self, index:int):
 		if index:
 			if index != 1:
-				raise IndexError("terminal vectors only have two entries")
+				raise IndexError("terminal poisition vectors only have two entries")
 			return self.vertical
 		return self.horizontal
 
@@ -491,6 +513,9 @@ class Vector(object):
 		return Point((self.horizontal.get(), self.vertical.get()))
 
 	def __init__(self):
+		"""
+		# Create a &Vector whose positions are initialized to zero.
+		"""
 		self.horizontal = Position()
 		self.vertical = Position()
 
