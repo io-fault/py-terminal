@@ -1,5 +1,7 @@
 """
 # Terminal input events data types.
+
+# Currently, this does not properly parse CSI.
 """
 import functools
 
@@ -19,7 +21,7 @@ def ictlchr(ctlid:str, offset=ord('A')-1) -> int:
 
 	# When a control character is transformed into a &core.Event, its
 	# identity is processed into a lowercase english alphabet character
-	# consistent with the usual terminal visualization.
+	# consistent with the usual visualization.
 
 	# This function inverts the process for applications needing the actual
 	# target control character. Notably, relying on the &Character.string
@@ -33,8 +35,6 @@ def ictlchr(ctlid:str, offset=ord('A')-1) -> int:
 
 # Escape codes mapped to constructed Key presses.
 escape_codes = {
-	' ': Char(('control', ' ', ' ', Meta)),
-	'\x7f': Char(('control', '\x7f', '?', Meta)),
 	'\t': Char(('control', '\t', 'i', Meta)),
 	'[Z': Char(('control', '[Z', 'i', Mod(shift=True))),
 	'\x19': Char(('control', '\x19', 'i', Mod(shift=True, meta=True))),
@@ -162,21 +162,24 @@ build_event_table()
 del build_event_table
 
 # Override any of the control characters with the common representation.
-control_characters = {
-	'\x7f': Char(('control', '\x7f', '?', Zero)),
-	' ': Char(('control', ' ', ' ', Zero)),
+literal_overrides = {
+	'\x7f': '?',
+	' ': ' ',
 }
 
 @functools.lru_cache(32)
-def char(k, modifiers=Zero, Character=Character, Space=ord(' '), ControlOffset=ord('A')-1):
-	if k in control_characters:
-		return control_characters[k]
+def char(k, source=None, modifiers=Zero, Character=Character, Space=ord(' '), ControlOffset=ord('A')-1):
+	ok = k
+	k = literal_overrides.get(ok, k)
+
+	if source is None:
+		source = ok
 
 	i = ord(k)
 	if i < Space:
-		return Character(('control', k, chr(ControlOffset+i).lower(), modifiers))
+		return Character(('control', source, chr(ControlOffset+i).lower(), modifiers))
 
-	return Character(('literal', k, k, modifiers))
+	return Character(('literal', source, k, modifiers))
 
 @functools.lru_cache(16)
 def point(x, y, Type=Point):
@@ -231,19 +234,30 @@ def mouse(string):
 		Modifiers.construct(shift=shift, meta=meta, control=control),
 	))
 
+def cursor_report(string):
+	"""
+	# Parse a cursor position report.
+	"""
+	position = tuple(map(int, string[1:-1].split(';')))
+	return Character(('report', string, position, 0))
+
 def escaped_characters(string, Character=Character, Zero=Zero, modifiers=Meta):
 	"""
 	# Resolve the Key instance for the given string instance.
 	"""
 
 	if string in escape_codes:
-		return escape_codes[string]
+		yield escape_codes[string]
 	else:
 		if string[:2] == '[<':
 			# mouse event
-			return mouse(string)
+			yield mouse(string)
+		elif string[:1] == '[' and string[-1:] == 'R':
+			yield cursor_report(string)
 		else:
-			return char(string, modifiers=modifiers)
+			start = string[:1]
+			yield char(start, source='\x1b'+start, modifiers=modifiers)
+			yield from map(char, string[1:])
 
 def construct_character_events(data:str, escape='\x1b', iter=iter, next=next):
 	"""
@@ -255,35 +269,22 @@ def construct_character_events(data:str, escape='\x1b', iter=iter, next=next):
 	if first == -1:
 		# No escapes, just iterate over the characters.
 		# mapping control characters to their prebuilt Character() instances.
-		return tuple(map(char, data))
+		return list(map(char, data))
 	elif data:
 		# Escape Code to map control characters.
+		events = []
 
 		if first > 0:
-			events = [escaped_characters(data[:first])]
-		else:
-			events = []
+			events.extend(map(char, data[:first]))
 
-		# split on the escapes and map the sequences to KeyPressEvents
-		escapes = iter(data[first:].split(escape))
-		next(escapes) # skip initial empty sequence
-
-		##
-		# XXX
-		# handle cases where multiple escapes are found.
-		# there are some cases of ambiguity, but this seems to be ideal?
-		escape_level = 0
+		escapes = iter(data[first+1:].split(escape))
+		# XXX: Does not process CSI properly.
 		for x in escapes:
-			# escape escape.
 			if not x:
-				escape_level += 1
+				# Single escape.
+				events.append(char(escape))
 			else:
-				events.append(escaped_characters((escape * escape_level) + x))
-				escape_level = 0
-		else:
-			# handle the trailing escapes
-			if escape_level:
-				events.append(escaped_characters(escape * escape_level))
+				events.extend(escaped_characters(x))
 		return events
 	else:
 		# empty keys
