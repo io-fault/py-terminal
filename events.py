@@ -178,6 +178,8 @@ def char(k, source=None, modifiers=Zero, Character=Character, Space=ord(' '), Co
 	i = ord(k)
 	if i < Space:
 		return Character(('control', source, chr(ControlOffset+i).lower(), modifiers))
+	elif ok in literal_overrides:
+		return Character(('control', source, k, modifiers))
 
 	return Character(('literal', source, k, modifiers))
 
