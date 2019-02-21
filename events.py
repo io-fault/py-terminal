@@ -13,6 +13,24 @@ Mod = Modifiers.construct
 Zero = Mod(0)
 Meta = Mod(meta=True)
 
+def ictlchr(ctlid:str, offset=ord('A')-1) -> int:
+	"""
+	# Transform a `'control'` &Character.identity into its literal form.
+
+	# When a control character is transformed into a &core.Event, its
+	# identity is processed into a lowercase english alphabet character
+	# consistent with the usual terminal visualization.
+
+	# This function inverts the process for applications needing the actual
+	# target control character. Notably, relying on the &Character.string
+	# is inappropriate in the case where the character was escaped and the
+	# event is qualified with some modifiers.
+	"""
+	if ctlid in {'?', ' '}:
+		return '\x7f' if ctlid == '?' else ' '
+
+	return chr(ord(ctlid.upper()) - offset)
+
 # Escape codes mapped to constructed Key presses.
 escape_codes = {
 	' ': Char(('control', ' ', ' ', Meta)),
