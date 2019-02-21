@@ -11,21 +11,20 @@ Point = core.Point
 Char = Character
 Mod = Modifiers.construct
 Zero = Mod(0)
+Meta = Mod(meta=True)
 
 # Escape codes mapped to constructed Key presses.
 escape_codes = {
-	'': Char(('control', '', 'escape', Zero)),
-	' ': Char(('control', ' ', 'space', Mod(meta=True))),
-	'\t': Char(('control', '\t', 'tab', Mod(meta=True))),
-	'[Z': Char(('control', '[Z', 'tab', Mod(shift=True))),
-	'[Z': Char(('control', '[Z', 'tab', Mod(shift=True, meta=True))),
+	' ': Char(('control', ' ', ' ', Meta)),
+	'\x7f': Char(('control', '\x7f', '?', Meta)),
+	'\t': Char(('control', '\t', 'i', Meta)),
+	'[Z': Char(('control', '[Z', 'i', Mod(shift=True))),
+	'\x19': Char(('control', '\x19', 'i', Mod(shift=True, meta=True))),
+
 	'OM': Char(('control', 'OM', 'enter', Zero)),
 
-	'\x7f': Char(('delta', '\x7f', 'delete', Mod(meta=True))),
-	'\b': Char(('delta', '\b', 'backspace', Mod(meta=True))),
-
-	'[2~': Char(('delta', '[2~', 'insert', Mod(meta=False))),
-	'[3~': Char(('delta', '[3~', 'delete', Mod(meta=False))),
+	'[2~': Char(('delta', '[2~', 'insert', Zero)),
+	'[3~': Char(('delta', '[3~', 'delete', Zero)),
 
 	'[A': Char(('navigation', '[A', 'up', Zero)),
 	'[B': Char(('navigation', '[B', 'down', Zero)),
@@ -144,63 +143,22 @@ def build_event_table():
 build_event_table()
 del build_event_table
 
-control_characters = dict(
-	# Some of these get overridden with their
-	# common representation. (newline, backspace, etc)
-	zip(
-		(
-			'', '',
-			'', '',
-			'', '',
-			'', '',
-			'\t', '\r',
-			'', '',
-			'\n', '',
-			'', '',
-			'\x11', '',
-			'\x13', '',
-			'', '',
-			'', '',
-			'', '',
-		),
-		(
-			Char(('control', x, x, Mod(control=True)))
-			for x in map(chr, range(ord('a'), ord('z')+1))
-		)
-	)
-)
-
 # Override any of the control characters with the common representation.
-control_characters.update({
-	'\x00': Char(('control', '\x00', 'nul', Mod(control=False))),
-
-	'\x7f': Char(('delta', '\x7f', 'delete', Mod(control=False))),
-	'\b': Char(('delta', '\b', 'backspace', Mod(control=False))),
-
-	' ': Char(('control', ' ', 'space', Mod(control=False))),
-
-	'\t': Char(('control', '\t', 'tab', Mod(control=False))),
-	'\r': Char(('control', '\r', 'return', Mod(control=False))),
-	'\n': Char(('control', '\n', 'newline', Mod(control=False))),
-
-	'': Char(('control', '', 'bracket', Mod(control=True))),
-	'': Char(('control', '', 'backslash', Mod(control=True))),
-	'': Char(('control', '', 'underscore', Mod(control=True))),
-})
+control_characters = {
+	'\x7f': Char(('control', '\x7f', '?', Zero)),
+	' ': Char(('control', ' ', ' ', Zero)),
+}
 
 @functools.lru_cache(32)
-def literal(k, Character=Character, Zero=Zero):
-	return Character(('literal', k, k, Zero))
+def char(k, modifiers=Zero, Character=Character, Space=ord(' '), ControlOffset=ord('A')-1):
+	if k in control_characters:
+		return control_characters[k]
 
-def literal_events(data):
-	"""
-	# Resolve events for keys without escapes.
-	"""
-	return tuple(
-		control_characters[x]
-		if x in control_characters else literal(x)
-		for x in data
-	)
+	i = ord(k)
+	if i < Space:
+		return Character(('control', k, chr(ControlOffset+i).lower(), modifiers))
+
+	return Character(('literal', k, k, modifiers))
 
 @functools.lru_cache(16)
 def point(x, y, Type=Point):
@@ -255,7 +213,7 @@ def mouse(string):
 		Modifiers.construct(shift=shift, meta=meta, control=control),
 	))
 
-def escaped_characters(string, Character=Character, Zero=Zero):
+def escaped_characters(string, Character=Character, Zero=Zero, modifiers=Meta):
 	"""
 	# Resolve the Key instance for the given string instance.
 	"""
@@ -267,7 +225,7 @@ def escaped_characters(string, Character=Character, Zero=Zero):
 			# mouse event
 			return mouse(string)
 		else:
-			return Character(('escaped', string, string, Zero))
+			return char(string, modifiers=modifiers)
 
 def construct_character_events(data:str, escape='\x1b', iter=iter, next=next):
 	"""
@@ -279,7 +237,7 @@ def construct_character_events(data:str, escape='\x1b', iter=iter, next=next):
 	if first == -1:
 		# No escapes, just iterate over the characters.
 		# mapping control characters to their prebuilt Character() instances.
-		return literal_events(data)
+		return tuple(map(char, data))
 	elif data:
 		# Escape Code to map control characters.
 
@@ -313,4 +271,4 @@ def construct_character_events(data:str, escape='\x1b', iter=iter, next=next):
 		# empty keys
 		return []
 
-del Char, Mod
+del Char, Mod, Zero, Meta

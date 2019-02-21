@@ -13,7 +13,7 @@ def loop():
 		string = data.decode('utf-8')
 		for k in events.construct_character_events(string):
 			print(repr(k) + '\r')
-			if k.modifiers.control == True and k.identity == 'c':
+			if k.type == 'control' and k.identity == 'c':
 				sys.exit(1)
 
 def main():
@@ -21,7 +21,7 @@ def main():
 	tty = Device(2)
 	tty.set_raw()
 	d = library.Display()
-	os.write(0, d.enable_mouse())
+	os.write(1, d.enable_mouse())
 	loop()
 
 if __name__ == '__main__':
