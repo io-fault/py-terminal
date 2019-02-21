@@ -9,7 +9,7 @@ from ...system.tty import Device
 
 def loop():
 	while True:
-		data = os.read(0, 128)
+		data = os.read(0, 256)
 		string = data.decode('utf-8')
 		for k in events.construct_character_events(string):
 			print(repr(k) + '\r')
