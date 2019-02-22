@@ -5,6 +5,7 @@ import functools
 import itertools
 
 from . import text
+from . import palette
 
 # Part of the initial escape.
 select_foreground = b'38;5'
