@@ -72,17 +72,18 @@ def restore_at_exit():
 	# Called once when the process is started to restore the terminal state.
 	"""
 	import atexit
+	from . import control
 
 	with open('/dev/tty', mode='r+b') as tty:
-		def _restore_terminal(path='/dev/tty', terminal_state = termios.tcgetattr(tty.fileno())):
-			d = device.Display()
-
+		def _restore_terminal(path='/dev/tty', ctl=control, terminal_state=termios.tcgetattr(tty.fileno())):
+			lw = ctl.optset('line-wrapping')
+			dm = ctl.optrst('mouse-drag', 'mouse-events')
 			# in case cursor was hidden
 			with open(path, mode='r+b') as f:
 				# bit of a hack and assumes no other state changes need to occur.
 				resets = b'\x1b[?12l\x1b[?25h' # normalize cursor
-				resets += d.disable_mouse()
-				resets += d.enable_line_wrap()
+				resets += dm
+				resets += lw
 				f.write(resets)
 				termios.tcsetattr(f.fileno(), termios.TCSADRAIN, terminal_state)
 

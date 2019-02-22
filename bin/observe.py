@@ -5,6 +5,7 @@ import sys
 import os
 from .. import library
 from .. import events
+from .. import control
 from ...system.tty import Device
 
 def loop():
@@ -20,8 +21,7 @@ def main():
 	library.restore_at_exit()
 	tty = Device(2)
 	tty.set_raw()
-	d = library.Display()
-	os.write(1, d.enable_mouse())
+	os.write(1, control.optset('mouse-drag', 'mouse-events'))
 	loop()
 
 if __name__ == '__main__':
