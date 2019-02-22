@@ -1,32 +1,12 @@
 """
-# Terminal device input and output interfaces.
-
-# The Character input works with unicode while the output works with bytes.
-# Certain display events (style) may work with unicode (str) object, but access
-# to raw output is available.
-
-# The module level constants are xterm-compatible and can be used directly, but
-# won't be updated to support other terminals. The &Display class provides [or will provide]
-# the necessary abstraction to load and use terminal implementation specific codes.
-# Currently, however, xterm is assumed.
+# Character matrix rendering contexts.
 """
-import array
-import collections
 import functools
 import itertools
 
-from . import core
-from . import palette
-
-path = '/dev/tty'
-
-escape_character = b'\x1b'
-escape_sequence = b'\x1b['
+from . import text
 
 # Part of the initial escape.
-separator = b';'
-
-reset = b'0'
 select_foreground = b'38;5'
 select_background = b'48;5'
 select_foreground_rgb = b'38;2'
@@ -46,25 +26,76 @@ style_codes = {
 	'cross': (b'9', b'29'),
 }
 
-class Display(object):
+def offsets(text_sequence, *indexes, iter=iter, len=len, next=next, cells=text.cells):
 	"""
-	# Control function index for manipulating a terminal display.
+	# Get the cell offset of the given character indexes.
+	"""
+	offset = 0
+	nc = 0
+	noffset = 0
 
-	# This currently does not use the termcap database to shape the rendered escape sequences,
-	# and is primarily supporting xterm and xterm-like terminal implementations.
+	i = iter(text_sequence or (('',),))
+	x = next(i)
+	t = x[0]
+
+	for y in indexes:
+		if y == 0:
+			yield 0
+			continue
+		while x is not None:
+			chars = len(t)
+			noffset = offset + chars
+
+			if noffset >= y:
+				# found it
+				yield nc + cells(t[:y-offset])
+				break
+
+			nc += cells(t)
+			offset = noffset
+			try:
+				x = next(i)
+			except StopIteration:
+				raise IndexError(y)
+			t = x[0]
+		else:
+			# index out of range
+			raise IndexError(y)
+
+class Context(object):
+	"""
+	# Rendering context for character matrices.
 	"""
 	control_mapping = {chr(i): chr(0x2400 + i) for i in range(32)}
 	control_table = str.maketrans(control_mapping)
 
 	escape_character = b'\x1b'
 	escape_sequence = b'\x1b['
+	reset = b'0'
 	join = b';'.join
 
-	def __init__(self, encoding = 'utf-8'):
+	@staticmethod
+	@functools.lru_cache(32)
+	def translate(spoint, point):
+		return (point[0] + spoint[0], point[1] + spoint[1])
+
+	def __init__(self, encoding='utf-8'):
 		self.encoding = encoding
+
+	def adjust(self, position, dimensions):
+		"""
+		# Adjust the position and dimensions of the rendering context.
+		"""
+		self.point = position
+		self.dimensions = dimensions
+		# track relative position for seek operations
+		self.width, self.height = dimensions
 
 	def encode(self, escseq_param, str=str):
 		return str(escseq_param).encode(self.encoding)
+
+	def escape(self, terminator, *parts):
+		return self.escape_sequence + self.join(parts) + terminator
 
 	def draw_unit_vertical(self, character):
 		c = character.encode(self.encoding)
@@ -82,22 +113,12 @@ class Display(object):
 	def draw_segment_horizontal(self, unit, length):
 		return self.draw_unit_horizontal(unit) * length
 
-	def escape(self, terminator, *parts):
-		return self.escape_sequence + self.join(parts) + terminator
+		##
+		# REP doesn't have the greatest support when it comes to box drawing characters.
+		# tmux and Apple's Terminal does not appear to recognize them as "graphic characters".
+		return self.draw_unit_horizontal(unit) + self.escape(b'b', self.encode(str(length-1)))
 
-	def caret_hide(self):
-		return self.escape_sequence + b'?25l'
-
-	def caret_show(self):
-		return self.escape_sequence + b'[?12l' + self.escape_sequence + b'[?25h'
-
-	def disable_line_wrap(self):
-		return self.escape_sequence + b'?7l'
-
-	def enable_line_wrap(self):
-		return self.escape_sequence + b'?7h'
-
-	def print(self, text, control_map = control_table):
+	def print(self, text, control_map=control_table):
 		return self.encode(text.translate(control_map))
 
 	@functools.lru_cache(32)
@@ -165,7 +186,7 @@ class Display(object):
 		if prefix:
 			prefix_bytes = self.escape(b'm', *prefix)
 
-		suffix_bytes = self.escape(b'm', reset, *suffix)
+		suffix_bytes = self.escape(b'm', self.reset, *suffix)
 
 		return prefix_bytes + txt + suffix_bytes
 
@@ -190,42 +211,161 @@ class Display(object):
 		# mimics an actual backspace
 		return b'\b \b' * times
 
-	def space(self, times = 1):
+	def space(self, count=1):
 		"""
 		# Insert a sequence of spaces.
 		"""
-		return b' ' * times
+		return b' ' * count
 
-	def erase(self, times=1):
+	def blank(self, count=1):
 		"""
-		# The 'X' terminal code.
+		# Generate sequence for writing blank characters.
+		# Semantically, this should be equivalent to &space.
 		"""
-		return self.escape(self.encode(times) + b'X')
+		return self.escape(self.encode(count) + b'@')
 
-	def blank(self, times=1):
+	def clear_line(self, lineno):
+		return self.seek_line(lineno) + self.clear_current_line()
+
+	def clear_to_line(self, n = 1):
+		return self.escape(self.encode(n) + b'J')
+
+	def clear_to_bottom(self):
+		return self.escape(b'J')
+
+	def clear_before_cursor(self):
+		return self.escape_sequence + b'\x31\x4b'
+
+	def clear_after_cursor(self):
+		return self.escape_sequence + b'\x4b'
+
+	def clear_current_line(self):
+		return self.clear_before_cursor() + self.clear_after_cursor()
+
+	def deflate_horizontal(self, size):
+		return self.escape(b'P', self.encode(size))
+
+	def deflate_vertical(self, size):
+		return self.escape(b'M', self.encode(size))
+
+	def inflate_horizontal(self, size):
+		return self.escape(b'@', self.encode(size))
+
+	def inflate_vertical(self, size):
+		return self.escape(b'L', self.encode(size))
+
+	def deflate_area(self, area):
 		"""
-		# The '@' terminal code.
+		# Delete space, (horizontal, vertical) between the cursor.
+
+		# Often used to contract space after deleting characters.
 		"""
-		return self.escape(self.encode(times) + b'@')
+		change = b''
+		h, v = area
+
+		if h:
+			change += self.deflate_horizontal(h)
+		if v:
+			change += self.deflate_vertical(v)
+
+		return change
+
+	def inflate_area(self, area):
+		"""
+		# Insert space, (horizontal, vertical) between the cursor.
+
+		# Often used to make room for displaying characters.
+		"""
+		change = b''
+		h, v = area
+
+		if h:
+			change += self.inflate_horizontal(h)
+		if v:
+			change += self.inflate_vertical(v)
+
+		return change
+
+	def resize(self, old, new):
+		"""
+		# Given a number of characters from the cursor &old, resize the area
+		# to &new. This handles cases when the new size is smaller and larger than the old.
+		"""
+		deletes = self.deflate_horizontal(old)
+		spaces = self.inflate_horizontal(new)
+
+		return deletes + spaces
+
+	def delete(self, start, stop):
+		"""
+		# Delete the slice of characters moving the remainder in.
+		"""
+		buf = self.seek_start_of_line()
+		buf += self.seek_horizontal_relative(start)
+		buf += self.deflate_horizontal(stop)
+		return buf
+
+	def overwrite(self, offset_styles):
+		"""
+		# Given a sequence of (relative_offset, style(text)), return
+		# the necessary sequences to *overwrite* the characters at the offset.
+		"""
+		buf = bytearray()
+		for offset, styles in offset_styles:
+			buf += self.seek_horizontal_relative(offset)
+			buf += self.style(styles)
+		return buf
+
+	def clear(self):
+		"""
+		# Clear the area.
+		"""
+		init = self.seek((0, 0))
+
+		clearline = self.erase(self.width)
+		#bol = self.seek_horizontal_relative(-(self.width-1))
+		bol = b''
+		nl = b'\n'
+
+		return init + (self.height * (clearline + bol + nl))
+
+	def erase(self, count=1, background=None):
+		if background is None:
+			return super().erase(times)
+		else:
+			# fill with colored spaces if the background is not None.
+			return self.style(' ' * count, styles=(), cellcolor=background)
+
+	def seek(self, point):
+		"""
+		# Seek to the point relative to the area.
+		"""
+		return self.seek_absolute(self.translate(self.point, point))
+
+	def seek_start_of_line(self):
+		"""
+		# Seek to the start of the line.
+		"""
+		return super().seek_start_of_line() + self.seek_horizontal_relative(self.point[0])
+
+	def seek_bottom(self):
+		"""
+		# Seek to the last row of the area and the first column.
+		"""
+		return self.seek((0, self.height-1))
 
 	def seek_absolute(self, coordinates):
+		"""
+		# Coordinates are absolute; &Screen relative.
+		"""
 		h, v = coordinates
 		return self.escape(b'H', self.encode(v+1), self.encode(h+1))
-
-	def seek(self, coordinates):
-		"""
-		# Relocate the caret to an arbitrary, (area) relative location.
-		"""
-		return self.seek_absolute(coordinates)
 
 	def seek_line(self, lineno):
 		"""
 		# Seek to the beginning of a particular line number.
 		"""
 		return self.seek((0, lineno))
-
-	def seek_start_of_line(self):
-		return b'\r'
 
 	def seek_horizontal_relative(self, n):
 		if n < 0:
@@ -253,115 +393,26 @@ class Display(object):
 	def seek_start_of_next_line(self):
 		return self.seek_next_line() + self.seek_start_of_line()
 
+class Screen(Context):
+	"""
+	# Matrix Context bound to the first column and row.
+	"""
+
+	def adjust(self, point, dimensions):
+		if point != (0, 0):
+			raise ValueError("screen contexts must be positioned at zero")
+		return super().adjust(point, dimensions)
+
+	seek = Context.seek_absolute
+	def seek_start_of_line(self):
+		return b'\r'
+
 	def clear(self):
 		return self.escape(b'H') + self.escape(b'2J')
 
-	def clear_line(self, lineno):
-		return self.seek_line(lineno) + self.clear_current_line()
-
-	def clear_to_line(self, n = 1):
-		return self.escape(self.encode(n) + b'J')
-
-	def clear_to_bottom(self):
-		return self.escape(b'J')
-
-	def clear_before_caret(self):
-		return self.escape_sequence + b'\x31\x4b'
-
-	def clear_after_caret(self):
-		return self.escape_sequence + b'\x4b'
-
-	def clear_current_line(self):
-		return self.clear_before_caret() + self.clear_after_caret()
-
-	def store_caret_position(self):
-		return self.escape_character + b'\x37'
-
-	def restore_caret_position(self):
-		return self.escape_character + b'\x38'
-
-	def save_screen(self):
-		return self.escape(b'?1049h')
-
-	def restore_screen(self):
-		return self.escape(b'?1049l')
-
-	def enable_mouse(self):
-		return self.escape(b'?1002h') + self.escape(b'?1006h')
-
-	def disable_mouse(self):
-		return self.escape(b'?1002l') + self.escape(b'?1006l')
-
-	def deflate_horizontal(self, size):
-		return self.escape(b'P', self.encode(size))
-
-	def deflate_vertical(self, size):
-		return self.escape(b'M', self.encode(size))
-
-	def inflate_horizontal(self, size):
-		return self.escape(b'@', self.encode(size))
-
-	def inflate_vertical(self, size):
-		return self.escape(b'L', self.encode(size))
-
-	def deflate_area(self, area):
+	def erase(self, count=1):
 		"""
-		# Delete space, (horizontal, vertical) between the caret.
-
-		# Often used to contract space after deleting characters.
+		# Erase &count number of characters. `(CSI {count} X)`
+		# Implies default background.
 		"""
-		change = b''
-		h, v = area
-
-		if h:
-			change += self.deflate_horizontal(h)
-		if v:
-			change += self.deflate_vertical(v)
-
-		return change
-
-	def inflate_area(self, area):
-		"""
-		# Insert space, (horizontal, vertical) between the caret.
-
-		# Often used to make room for displaying characters.
-		"""
-		change = b''
-		h, v = area
-
-		if h:
-			change += self.inflate_horizontal(h)
-		if v:
-			change += self.inflate_vertical(v)
-
-		return change
-
-	def resize(self, old, new):
-		"""
-		# Given a number of characters from the caret &old, resize the area
-		# to &new. This handles cases when the new size is smaller and larger than the old.
-		"""
-		deletes = self.deflate_horizontal(old)
-		spaces = self.inflate_horizontal(new)
-
-		return deletes + spaces
-
-	def delete(self, start, stop):
-		"""
-		# Delete the slice of characters moving the remainder in.
-		"""
-		buf = self.seek_start_of_line()
-		buf += self.seek_horizontal_relative(start)
-		buf += self.deflate_horizontal(stop)
-		return buf
-
-	def overwrite(self, offset_styles):
-		"""
-		# Given a sequence of (relative_offset, style(text)), return
-		# the necessary sequences to *overwrite* the characters at the offset.
-		"""
-		buf = bytearray()
-		for offset, styles in offset_styles:
-			buf += self.seek_horizontal_relative(offset)
-			buf += self.style(styles)
-		return buf
+		return self.escape(self.encode(times) + b'X')
