@@ -13,9 +13,9 @@ class Unit(object):
 	"""
 	__slots__ = ('text', 'display', 'clipping', 'clipped', 'change', 'length')
 
-	def __init__(self, text=()):
+	def __init__(self, text=(), cells=text.cells):
 		self.text = text
-		self.length = sum(map(text.cells, (x[0] for x in self.text)))
+		self.length = sum(map(cells, (x[0] for x in self.text)))
 		self.clipping = (0, None)
 		self.change = self.clipped = 0
 		self.display = tuple(text)
