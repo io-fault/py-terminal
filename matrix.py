@@ -331,7 +331,7 @@ class Context(object):
 
 	def erase(self, count=1, background=None):
 		if background is None:
-			return super().erase(times)
+			return self.escape(self.encode(count) + b'X')
 		else:
 			# fill with colored spaces if the background is not None.
 			return self.style(' ' * count, styles=(), cellcolor=background)
@@ -346,7 +346,7 @@ class Context(object):
 		"""
 		# Seek to the start of the line.
 		"""
-		return super().seek_start_of_line() + self.seek_horizontal_relative(self.point[0])
+		return b'\r' + self.seek_horizontal_relative(self.point[0])
 
 	def seek_bottom(self):
 		"""
