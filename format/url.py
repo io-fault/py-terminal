@@ -46,8 +46,8 @@ def f_string(string):
 
 if __name__ == '__main__':
 	import sys
-	from .. import library as lt
-	dev = lt.device.Display()
+	from .. import matrix
+	dev = matrix.Screen()
 	values = sys.argv[1:] # ri, path, ts, dir: libformat dir /
 
 	for x in values:

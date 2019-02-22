@@ -133,8 +133,8 @@ def f_route_absolute(route, warning=False):
 if __name__ == '__main__':
 	import sys
 	from ...routes import library as l
-	from .. import library as lt
-	dev = lt.device.Display()
+	from .. import matrix
+	dev = matrix.Screen()
 	values = sys.argv[1:]
 
 	for x in values:

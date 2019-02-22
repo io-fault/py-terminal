@@ -122,9 +122,9 @@ def f_timestamp(relation, timestamp, precision='microsecond'):
 
 if __name__ == '__main__':
 	import sys
-	from .. import library as lt
 	from ...time import library as t
-	dev = lt.device.Display()
+	from .. import matrix
+	dev = matrix.Screen()
 	values = sys.argv[1:] # ri, path, ts, dir: libformat dir /
 
 	now = t.now()
