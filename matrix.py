@@ -17,11 +17,12 @@ select_background_rgb = b'48;2'
 style_codes = {
 	'bold': (b'1', b'22'),
 	'feint': (b'2', b'22'),
+	'blink': (b'5', b'25'),
+	'rapid': (b'6', b'25'),
+
 	'italic': (b'3', b'23'),
 	'underline': (b'4', b'24'),
 	'double-underline': (b'21', b'24'),
-	'blink': (b'5', b'25'),
-	'rapid': (b'6', b'25'),
 	'reverse': (b'7', b'27'),
 	'invisible': (b'8', b'28'),
 	'cross': (b'9', b'29'),
@@ -205,12 +206,12 @@ class Context(object):
 		style = partial(self.style, foreground=foreground, background=background)
 		return b''.join(chain((), map(style, seq)))
 
-	def backspace(self, times=1):
+	def backspace(self, count=1):
 		"""
-		# Cause an actual backspace to be performed.
+		# Cause an actual backspace to be performed in raw mode.
 		"""
 		# mimics an actual backspace
-		return b'\b \b' * times
+		return b'\b \b' * count
 
 	def space(self, count=1):
 		"""
@@ -396,7 +397,7 @@ class Context(object):
 
 class Screen(Context):
 	"""
-	# Matrix Context bound to the first column and row.
+	# Matrix &Context bound to the first column and row.
 	"""
 
 	def adjust(self, point, dimensions):
