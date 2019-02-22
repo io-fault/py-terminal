@@ -417,4 +417,4 @@ class Screen(Context):
 		# Erase &count number of characters. `(CSI {count} X)`
 		# Implies default background.
 		"""
-		return self.escape(self.encode(times) + b'X')
+		return self.escape(self.encode(count) + b'X')
