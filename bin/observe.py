@@ -3,7 +3,6 @@
 """
 import sys
 import os
-from .. import library
 from .. import events
 from .. import control
 from ...system.tty import Device
@@ -18,8 +17,8 @@ def loop():
 				sys.exit(1)
 
 def main():
-	library.restore_at_exit()
 	tty = Device(2)
+	control.restore_at_exit(tty)
 	tty.set_raw()
 	os.write(1, control.optset('mouse-drag', 'mouse-events'))
 	loop()
