@@ -37,7 +37,7 @@ def ictlchr(ctlid:str, offset=ord('A')-1) -> int:
 escape_codes = {
 	'\t': Char(('control', '\t', 'i', Meta)),
 	'[Z': Char(('control', '[Z', 'i', Mod(shift=True))),
-	'\x19': Char(('control', '\x19', 'i', Mod(shift=True, meta=True))),
+	'\x19': Char(('control', '\x19', 'i', Mod(shift=True, meta=True))),
 
 	'OM': Char(('control', 'OM', 'enter', Zero)),
 
