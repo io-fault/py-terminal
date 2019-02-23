@@ -16,18 +16,18 @@ _state = {
 }
 
 _options = {
-	'meta-escape': b'?1036',
-	'raw-buffer': b'?1049', # save cursor in normal and switch to alternate
+	'line-wrapping': b'?7',
+	'cursor-visible': b'?25',
 
 	'mouse-drag': b'?1002',
 	'mouse-motion': b'?1003',
 	'mouse-events': b'?1006',
 
-	'line-wrapping': b'?7',
-	'cursor-visible': b'?25',
 	'bracket-paste-mode': b'?2004',
 
 	# xterm
+	'raw-buffer': b'?1049', # save cursor in normal buffer and switch to alternate buffer
+	'meta-escape': b'?1036',
 	'emulator-log': b'?46',
 
 	# rxvt
