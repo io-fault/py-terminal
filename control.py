@@ -60,10 +60,9 @@ def restore_at_exit(tty=None):
 		tty.record()
 
 	def _restore_terminal(device=tty):
-		lw = optset('line-wrapping')
+		lw = optset('line-wrapping', 'cursor-visible')
 		dm = optrst('mouse-drag', 'mouse-events')
-		resets = b'\x1b[?12l\x1b[?25h' # normalize cursor
-		resets += dm
+		resets = dm
 		resets += lw
 		while resets:
 			resets = resets[os.write(device.kport, resets):]
