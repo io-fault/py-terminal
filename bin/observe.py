@@ -18,6 +18,7 @@ def loop():
 
 def main():
 	tty = Device(2)
+	tty.record()
 	control.restore_at_exit(tty)
 	tty.set_raw()
 	os.write(1, control.optset('mouse-drag', 'mouse-events'))
