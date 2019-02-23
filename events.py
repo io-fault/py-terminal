@@ -251,11 +251,15 @@ def escaped_characters(string, Character=Character, Zero=Zero, modifiers=Meta):
 	if string in escape_codes:
 		yield escape_codes[string]
 	else:
-		if string[:2] == '[<':
-			# mouse event
-			yield mouse(string)
-		elif string[:1] == '[' and string[-1:] == 'R':
-			yield cursor_report(string)
+		if string[:1] == '[':
+			if string[1:2] == '<':
+				# mouse event
+				yield mouse(string)
+			elif string[-1:] == 'R':
+				yield cursor_report(string)
+			elif string[:5] in {'[200~', '[201~'}:
+				yield escape_codes[string[:5]]
+				yield from map(char, string[5:])
 		else:
 			start = string[:1]
 			yield char(start, source='\x1b'+start, modifiers=modifiers)
