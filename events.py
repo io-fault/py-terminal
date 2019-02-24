@@ -212,7 +212,7 @@ def mouse(string):
 		# drag
 		offset = 32
 		act = 0
-		event = 'drag'
+		event = 'motion'
 	else:
 		event = 'scroll'
 		# Scroll Events.
