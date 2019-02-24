@@ -94,7 +94,7 @@ def disable(symbols:typing.Sequence[str]) -> bytes:
 	"""
 	return b''.join(_build(_rst_flag, fields))
 
-def choptions(settings:typing.Mapping, _td={True:_set_flag, False:_rst_flag}, options=options) -> bytes:
+def configure(settings:typing.Mapping, _td={True:_set_flag, False:_rst_flag}, options=options) -> bytes:
 	"""
 	# Construct the control sequences necessary to change the terminal's options
 	# to reflect the given &settings mapping.
@@ -121,7 +121,7 @@ def restore_at_exit(tty=None):
 		tty.record()
 
 	def _restore_terminal(device=tty):
-		changes = choptions({
+		changes = configure({
 			'mouse-motion': False,
 			'alternate-screen': False,
 			'line-wrap': True,

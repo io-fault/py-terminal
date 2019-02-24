@@ -21,7 +21,7 @@ def main():
 	tty.record()
 	control.restore_at_exit(tty)
 	tty.set_raw()
-	options = control.choptions({
+	options = control.configure({
 		'mouse-extended-protocol': True,
 		'mouse-drag': True,
 		'bracket-paste-mode': True,
