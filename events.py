@@ -1,7 +1,10 @@
 """
 # Terminal input events data types.
 
-# Currently, this does not properly parse CSI.
+# [ Engineering ]
+# Currently, this does not properly parse CSI and relies heavily on timing.
+# This may not properly interpret events in an asynchronous I/O context
+# where the edge of a buffer may conceal an escape sequence or meta-escaped character event.
 """
 import functools
 
@@ -35,6 +38,15 @@ def ictlchr(ctlid:str, offset=ord('A')-1) -> int:
 
 # Escape codes mapped to constructed Key presses.
 escape_codes = {
+	# Special case for solo brackets. (CSI)
+	'[[': Char(('literal', '[[', '[', Meta)),
+
+	# XXX: This should probably trigger an exception or not occur at all.
+	# Likely, if this is seen, it means there's more data to come to complete the sequence.
+	# xterm will send this with meta escape.
+	'[': Char(('literal', '[', '[', Meta)),
+
+	# Tabs
 	'\t': Char(('control', '\t', 'i', Meta)),
 	'[Z': Char(('control', '[Z', 'i', Mod(shift=True))),
 	'\x19': Char(('control', '\x19', 'i', Mod(shift=True, meta=True))),
@@ -61,7 +73,7 @@ escape_codes = {
 	'[5~': Char(('navigation', '[5~', 'pageup', Zero)),
 	'[6~': Char(('navigation', '[6~', 'pagedown', Zero)),
 
-	# VT100 compat
+	# VT100 compat (XXX: potentially conflicts with meta escapes)
 	'OP': Char(('function', 'OP', 1, Zero)),
 	'OQ': Char(('function', 'OQ', 2, Zero)),
 	'OR': Char(('function', 'OR', 3, Zero)),
