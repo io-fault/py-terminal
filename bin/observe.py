@@ -21,7 +21,12 @@ def main():
 	tty.record()
 	control.restore_at_exit(tty)
 	tty.set_raw()
-	os.write(1, control.optset('mouse-drag', 'mouse-events', 'meta-escape', 'bracket-paste-mode'))
+	options = control.choptions({
+		'mouse-extended-protocol': True,
+		'mouse-drag': True,
+		'bracket-paste-mode': True,
+	})
+	os.write(1, options)
 	loop()
 
 if __name__ == '__main__':

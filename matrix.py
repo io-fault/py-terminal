@@ -66,7 +66,7 @@ def offsets(text_sequence, *indexes, iter=iter, len=len, next=next, cells=text.c
 
 class Context(object):
 	"""
-	# Rendering context for character matrices.
+	# Rendering Context for character matrices.
 	"""
 	control_mapping = {chr(i): chr(0x2400 + i) for i in range(32)}
 	control_table = str.maketrans(control_mapping)
@@ -338,6 +338,9 @@ class Context(object):
 			# fill with colored spaces if the background is not None.
 			return self.style(' ' * count, styles=(), cellcolor=background)
 
+	def erase_area(self, top, left, bottom, right, code=b'$z'):
+		return self.escape(code, top, left, bottom, right)
+
 	def seek(self, point):
 		"""
 		# Seek to the point relative to the area.
@@ -398,7 +401,30 @@ class Context(object):
 class Screen(Context):
 	"""
 	# Matrix &Context bound to the first column and row.
+
+	# Screens are given a slightly wider scope than &Context and provides
+	# access to some configuration options that are not always maintained
+	# for the duration of the process.
 	"""
+
+	# Store Cursor Position / Restore Cursor Position
+	def set_scrolling_region(self, top, bottom):
+		"""
+		# Confine the scrolling area to the given rows.
+		"""
+		return self.escape(b'r', top+1, bottom+1)
+
+	def reset_scrolling_region(self):
+		"""
+		# Set the scrolling region to the entire screen.
+		"""
+		return self.escape(b'r')
+
+	def store_cursor_location(self):
+		return self.escape_character + b'7'
+
+	def restore_cursor_location(self):
+		return self.escape_character + b'8'
 
 	def adjust(self, point, dimensions):
 		if point != (0, 0):
