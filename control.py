@@ -173,16 +173,17 @@ def setup(ctype='curse', tty=None):
 	# Register an atexit handler to reconfigure the terminal into a state that is usually consistent
 	# with a shell's expectations.
 
-	# If &tty is not provided, a &fault.system.tty.Device instance will be created from the
-	# system's tty path (usually (fs/path)`/dev/tty`).
-
 	# The given &tty or the created one will be returned.
 
 	# [ Parameters ]
-	# /tty/
-		# The &fault.system.tty.Device whose restore method should be called atexit.
 	# /ctype/
 		# The Configuration Type to apply immediately after the atexit handler has been registered.
+		# Usually, the default, `'curse'`, is the desired value and selects the configuration
+		# set from &ctypes.
+	# /tty/
+		# The &fault.system.tty.Device whose restore method should be called atexit.
+		# If &tty is not provided, a &fault.system.tty.Device instance will be created from the
+		# system's tty path (usually (fs/path)`/dev/tty`).
 	"""
 	import functools
 	import atexit
