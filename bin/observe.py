@@ -5,11 +5,11 @@ import sys
 import os
 from .. import events
 from .. import control
-from ...system.tty import Device
 
-def loop():
+def loop(tty):
+	fd = tty.fileno()
 	while True:
-		data = os.read(0, 256)
+		data = os.read(fd, 256)
 		string = data.decode('utf-8')
 		for k in events.construct_character_events(string):
 			print(repr(k) + '\r')
@@ -17,17 +17,7 @@ def loop():
 				sys.exit(1)
 
 def main():
-	tty = Device(2)
-	tty.record()
-	control.restore_at_exit(tty)
-	tty.set_raw()
-	options = control.configure({
-		'mouse-extended-protocol': True,
-		'mouse-drag': True,
-		'bracket-paste-mode': True,
-	})
-	os.write(1, options)
-	loop()
+	loop(control.setup('observe'))
 
 if __name__ == '__main__':
 	main()
