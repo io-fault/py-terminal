@@ -61,7 +61,10 @@ import typing
 
 _set_flag = b'h'
 _rst_flag = b'l'
+_save_flag = b's'
+_restore_flag = b'r'
 _flag_map = {True:_set_flag, False:_rst_flag}
+_escape_sequence = b'\x1b[?'
 
 options = {
 	'alternate-screen': b'1049',
@@ -87,25 +90,37 @@ options = {
 	'scroll-bottom-on-input': b'1011',
 }
 
-def _build(flag, fields, escape_sequence=b'\x1b[?'):
+def _build(flag, fields, esc=_escape_sequence):
 	for x in fields:
 		code = options[x]
 		if code:
-			yield escape_sequence + code + flag
+			yield esc + code + flag
+
+def save(symbols:typing.Sequence[str]) -> bytes:
+	"""
+	# Save the Private Mode values referenced by &symbols.
+	"""
+	return b''.join(_build(_save_flag, symbols))
+
+def restore(symbols:typing.Sequence[str]) -> bytes:
+	"""
+	# Restore the Private Mode values referenced by &symbols.
+	"""
+	return b''.join(_build(_restore_flag, symbols))
 
 def enable(symbols:typing.Sequence[str]) -> bytes:
 	"""
 	# Construct escape sequences enabling the options cited in &symbols.
 	# The strings in &symbols must be keys from &options.
 	"""
-	return b''.join(_build(_set_flag, fields))
+	return b''.join(_build(_set_flag, symbols))
 
 def disable(symbols:typing.Sequence[str]) -> bytes:
 	"""
 	# Construct escape sequences disabling the options cited in &symbols.
 	# The strings in &symbols must be keys from &options.
 	"""
-	return b''.join(_build(_rst_flag, fields))
+	return b''.join(_build(_rst_flag, symbols))
 
 def configure(settings:typing.Mapping, escape_sequence=b'\x1b[?', options=options) -> bytes:
 	"""
@@ -146,12 +161,13 @@ ctypes = {
 
 def _warn_incoherent(message="(tty) terminal configuration may be incoherent"):
 	import sys
-	sys.stderr.write("\n\r[!* WARNING: %s]\n" %(message,))
+	sys.stderr.write("\n\r[!* WARNING: %s]\n\r" %(message,))
 
-def _reconfigure_system_terminal(tty, write):
+def _ctl_exit(tty, ctype, write):
+	# Usually called by &setup.
 	try:
-		mode, cfg = ctypes['exit']
-		changes = configure(cfg)
+		mode, cfg = ctypes[ctype]
+		changes = restore(cfg.keys())
 		while changes:
 			changes = changes[write(tty.fileno(), changes):]
 		tty.restore() # fault.system.tty.Device instance
@@ -159,12 +175,14 @@ def _reconfigure_system_terminal(tty, write):
 		_warn_incoherent()
 		raise
 
-def _init(tty, ctype, write):
+def _ctl_init(tty, ctype, write):
+	# Usually called by &setup.
 	mode, cfg = ctypes[ctype]
 	init_dev = getattr(tty, 'set_' + mode) # set_raw, normally
 	init_dev()
 
-	changes = configure(cfg)
+	changes = save(cfg.keys())
+	changes += configure(cfg)
 	while changes:
 		changes = changes[write(tty.fileno(), changes):]
 
@@ -194,7 +212,7 @@ def setup(ctype='curse', tty=None):
 		tty = Device.open()
 	tty.record()
 
-	atexit.register(functools.partial(_reconfigure_system_terminal, tty, write))
-	_init(tty, ctype, write)
+	atexit.register(functools.partial(_ctl_exit, tty, ctype, write))
+	_ctl_init(tty, ctype, write)
 
 	return tty
