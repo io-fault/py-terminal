@@ -421,10 +421,28 @@ class Screen(Context):
 		return self.escape(b'r')
 
 	def store_cursor_location(self):
+		"""
+		# Emulator level cursor storage.
+		"""
 		return self.escape_character + b'7'
 
 	def restore_cursor_location(self):
+		"""
+		# Restore a previously stored cursor location.
+		"""
 		return self.escape_character + b'8'
+
+	def scroll_up(self, count):
+		"""
+		# Adjust the scroll region's view by scrolling up &count rows.
+		"""
+		return self.escape(b'S', count)
+
+	def scroll_down(self, count):
+		"""
+		# Adjust the scroll region's view by scrolling down &count rows.
+		"""
+		return self.escape(b'T', rows)
 
 	def adjust(self, point, dimensions):
 		if point != (0, 0):
