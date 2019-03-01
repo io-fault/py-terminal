@@ -9,6 +9,7 @@
 import functools
 
 from . import core
+
 Character = core.Event
 Modifiers = core.Modifiers
 Point = core.Point
@@ -38,6 +39,10 @@ def ictlchr(ctlid:str, offset=ord('A')-1) -> int:
 
 # Escape codes mapped to constructed Key presses.
 escape_codes = {
+	# xterm focus events
+	'[I': Char(('focus', '[I', 'in', 0)),
+	'[O': Char(('focus', '[O', 'out', 0)),
+
 	# Special case for solo brackets. (CSI)
 	'[[': Char(('literal', '[[', '[', Meta)),
 
@@ -47,7 +52,6 @@ escape_codes = {
 	'[': Char(('literal', '[', '[', Meta)),
 
 	# Tabs
-	'\t': Char(('control', '\t', 'i', Meta)),
 	'[Z': Char(('control', '[Z', 'i', Mod(shift=True))),
 	'\x19': Char(('control', '\x19', 'i', Mod(shift=True, meta=True))),
 
@@ -73,7 +77,9 @@ escape_codes = {
 	'[5~': Char(('navigation', '[5~', 'pageup', Zero)),
 	'[6~': Char(('navigation', '[6~', 'pagedown', Zero)),
 
-	# VT100 compat (XXX: potentially conflicts with meta escapes)
+	# VT100 compat.
+	# This potentially conflicts with meta escapes, but timing
+	# should usually manage to resolve the ambiguity.
 	'OP': Char(('function', 'OP', 1, Zero)),
 	'OQ': Char(('function', 'OQ', 2, Zero)),
 	'OR': Char(('function', 'OR', 3, Zero)),
@@ -101,6 +107,7 @@ escape_codes = {
 
 # build out the codes according to the available patterns
 def build_event_table():
+	# XXX: Rework this into a proper CSI parser.
 	modifier_sequence = tuple(zip((2,3,5,6,7), (
 		Mod(shift=True),
 		Mod(meta=True),
