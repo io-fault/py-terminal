@@ -1,17 +1,18 @@
 """
-# Terminal control sequences for option management.
+# Terminal control sequences for emulator configuration management.
 
 # While &.matrix.Context constructs sequences for drawing, the functions and data
 # here provide high-level access to options that are usually maintained for the duration
 # of the controlling process.
 
-# The &options dictionary provides a mapping from a contrived option symbol to the code
-# used to compose the escape sequence. All &.control interfaces work with &[Symbols].
+# The &options dictionary provides a mapping from a contrived option Symbols to the codes
+# used to compose the escape sequence. Most &.control interfaces work with &[Symbols].
 
-# Most of the functions here behave similarly to &.matrix; the control sequences are constructed
-# and returned for the caller to emit to the terminal in order to avoid state and to allow
-# independent control over buffering. &setup is the one notable exception and provides
-# a solution for the common case of terminal initialization for the duration of the process.
+# The functions here behave similarly to &.matrix; the control sequences are constructed
+# and returned for the caller to emit to the terminal in order to avoid state and to permit
+# application control over buffering.
+# &setup is the one notable exception and provides a solution for the common case of
+# terminal initialization for the duration of the process.
 
 # [ Symbols ]
 
@@ -52,6 +53,19 @@
 	# Control an effect of typing input into the terminal.
 # /log/
 	# Control the terminal's internal logging facility.
+
+# [ Configuration Types ]
+
+# &[Symbols] will be added when desireable features are added by emulators. In order to keep usage
+# consistent as possible without requiring changes to applications, configuration types are defined
+# to allow applications to refer to and define groups of symbols.
+
+# /curse/
+	# The default configuration type referrenced by &setup; used by raw line disciplines.
+# /bless/
+	# A reasonable set of defaults for use with cooked line disciplines.
+# /observe/
+	# Configuration used by &.terminal.bin.observe to maximize the perceived events.
 
 # [ Engineering ]
 # The sequences are hard coded here. &..terminal is generally focused on modern terminal emulators, but
