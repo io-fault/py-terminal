@@ -141,21 +141,24 @@ ctypes = {
 		'mouse-extended-protocol': True,
 		'mouse-drag': True,
 		'alternate-screen': True,
+		'focus-events': True,
 		'line-wrap': False,
 		'cursor-visible': False,
 	}),
-	'exit': (None, {
+	'cooked': (None, {
 		'mouse-events': False,
 		'mouse-drag': False,
 		'mouse-motion': False,
 		'alternate-screen': False,
 		'line-wrap': True,
 		'cursor-visible': True,
+		'focus-events': False,
 	}),
 	'observe': ('raw', {
 		'mouse-extended-protocol': True,
 		'mouse-motion': True,
 		'bracket-paste-mode': True,
+		'focus-events': True,
 	}),
 }
 
