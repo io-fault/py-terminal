@@ -1,4 +1,4 @@
-from .. import matrix
+from .. import matrix as library
 
 def test_offsets(test):
 	"""
