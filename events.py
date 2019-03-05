@@ -209,6 +209,14 @@ def point(x, y, Type=Point):
 	"""
 	return Type((x,y))
 
+@functools.lru_cache(8)
+def interpret_modifiers(packed, Create=Modifiers.construct):
+	return Create(
+		shift=(packed & 4),
+		meta=(packed & 8),
+		control=(packed & 16)
+	)
+
 @functools.lru_cache(16)
 def mouse(string):
 	"""
@@ -245,14 +253,10 @@ def mouse(string):
 			act = -1
 
 	mods = mbutton - offset
-	shift = mods & 4
-	meta = mods & 8
-	control = mods & 16
-
 	return Character((
 		event, string,
 		(point(mx, my), act, mods & 0b11),
-		Modifiers.construct(shift=shift, meta=meta, control=control),
+		interpret_modifiers(mods),
 	))
 
 def cursor_report(string):
