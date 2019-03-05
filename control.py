@@ -60,7 +60,7 @@
 # consistent as possible without requiring changes to applications, configuration types are defined
 # to allow applications to refer to and define groups of symbols.
 
-# /curse/
+# /cursed/
 	# The default configuration type referrenced by &setup; used by raw line disciplines.
 # /bless/
 	# A reasonable set of defaults for use with cooked line disciplines.
@@ -151,7 +151,7 @@ def configure(settings:typing.Mapping, escape_sequence=b'\x1b[?', options=option
 	])
 
 ctypes = {
-	'curse': ('raw', {
+	'cursed': ('raw', {
 		'mouse-extended-protocol': True,
 		'mouse-drag': True,
 		'alternate-screen': True,
@@ -170,10 +170,13 @@ ctypes = {
 	}),
 	'observe': ('raw', {
 		'mouse-extended-protocol': True,
+		'mouse-events': True,
+		'mouse-drag': True,
 		'mouse-motion': True,
 		'bracket-paste-mode': True,
 		'focus-events': True,
 	}),
+	'prepared': (None, None),
 }
 
 def _warn_incoherent(message="(tty) terminal configuration may be incoherent"):
@@ -184,9 +187,12 @@ def _ctl_exit(tty, ctype, write):
 	# Usually called by &setup.
 	try:
 		mode, cfg = ctypes[ctype]
-		changes = restore(cfg.keys())
-		while changes:
-			changes = changes[write(tty.fileno(), changes):]
+		if cfg is not None:
+			changes = restore(cfg.keys())
+			while changes:
+				changes = changes[write(tty.fileno(), changes):]
+
+		# No-op if mode is None.
 		tty.restore() # fault.system.tty.Device instance
 	except BaseException as err:
 		_warn_incoherent()
@@ -195,15 +201,17 @@ def _ctl_exit(tty, ctype, write):
 def _ctl_init(tty, ctype, write):
 	# Usually called by &setup.
 	mode, cfg = ctypes[ctype]
-	init_dev = getattr(tty, 'set_' + mode) # set_raw, normally
-	init_dev()
+	if mode is not None:
+		init_dev = getattr(tty, 'set_' + mode) # set_raw, normally
+		init_dev()
 
-	changes = save(cfg.keys())
-	changes += configure(cfg)
-	while changes:
-		changes = changes[write(tty.fileno(), changes):]
+	if cfg is not None:
+		changes = save(cfg.keys())
+		changes += configure(cfg)
+		while changes:
+			changes = changes[write(tty.fileno(), changes):]
 
-def setup(ctype='curse', tty=None):
+def setup(ctype='cursed', tty=None):
 	"""
 	# Register an atexit handler to reconfigure the terminal into a state that is usually consistent
 	# with a shell's expectations.
@@ -212,8 +220,8 @@ def setup(ctype='curse', tty=None):
 
 	# [ Parameters ]
 	# /ctype/
-		# The Configuration Type to apply immediately after the atexit handler has been registered.
-		# Usually, the default, `'curse'`, is the desired value and selects the configuration
+		# The &[Configuration Type] to apply immediately after the atexit handler has been registered.
+		# Usually, the default, `'cursed'`, is the desired value and selects the configuration
 		# set from &ctypes.
 	# /tty/
 		# The &fault.system.tty.Device whose restore method should be called atexit.
