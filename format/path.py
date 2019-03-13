@@ -134,9 +134,13 @@ if __name__ == '__main__':
 	import sys
 	from ...routes import library as l
 	from .. import matrix
-	dev = matrix.Screen()
+	screen = matrix.Screen()
 	values = sys.argv[1:]
 
 	for x in values:
 		r = l.File.from_path(x)
-		sys.stderr.buffer.write(dev.renderline(list(f_route_absolute(r))) + b'\n')
+		phrase = matrix.Phrase.construct([
+			(x[0], x[-1], None, matrix.Traits.construct(*x[1]))
+			for x in f_route_absolute(r)
+		])
+		sys.stderr.buffer.write(b''.join(screen.render(phrase)) + b'\n')

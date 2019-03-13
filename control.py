@@ -179,26 +179,29 @@ ctypes = {
 	'prepared': (None, None),
 }
 
-def _warn_incoherent(message="(tty) terminal configuration may be incoherent"):
-	import sys
-	sys.stderr.write("\n\r[!* WARNING: %s]\n\r" %(message,))
-
-def _ctl_exit(tty, ctype, write):
-	# Usually called by &setup.
+def _ctl_exit(tty, ctype, write, restoration, limit=64):
+	# Usually called by &setup via atexit
+	issue_warning = False
 	try:
-		mode, cfg = ctypes[ctype]
-		if cfg is not None:
-			changes = restore(cfg.keys())
-			while changes:
-				changes = changes[write(tty.fileno(), changes):]
+		while restoration and limit > 0:
+			restoration = restoration[write(tty.fileno(), restoration):]
+			limit -= 1
+		else:
+			if limit <= 0:
+				issue_warning = True
 
 		# No-op if mode is None.
 		tty.restore() # fault.system.tty.Device instance
 	except BaseException as err:
-		_warn_incoherent()
+		issue_warning = True
 		raise
+	finally:
+		if issue_warning:
+			import sys
+			message = "(tty) terminal configuration may be incoherent"
+			sys.stderr.write("\n\r[!* WARNING: %s]\n\r" %(message,))
 
-def _ctl_init(tty, ctype, write):
+def _ctl_init(tty, ctype, write, limit=64):
 	# Usually called by &setup.
 	mode, cfg = ctypes[ctype]
 	if mode is not None:
@@ -206,12 +209,17 @@ def _ctl_init(tty, ctype, write):
 		init_dev()
 
 	if cfg is not None:
-		changes = save(cfg.keys())
-		changes += configure(cfg)
-		while changes:
-			changes = changes[write(tty.fileno(), changes):]
+		init = save(cfg.keys())
+		init += configure(cfg)
 
-def setup(ctype='cursed', tty=None):
+	while init and limit > 0:
+		init = init[write(tty.fileno(), init):]
+		limit -= 1
+
+	if limit <= 0 and init:
+		pass
+
+def setup(ctype='cursed', tty=None, limit=64):
 	"""
 	# Register an atexit handler to reconfigure the terminal into a state that is usually consistent
 	# with a shell's expectations.
@@ -237,7 +245,13 @@ def setup(ctype='cursed', tty=None):
 		tty = Device.open()
 	tty.record()
 
-	atexit.register(functools.partial(_ctl_exit, tty, ctype, write))
-	_ctl_init(tty, ctype, write)
+	# Collect full restoration now so the module can be discarded.
+	mode, cfg = ctypes[ctype]
+	restoration = b''
+	if cfg is not None:
+		restoration = restore(cfg.keys())
+
+	atexit.register(functools.partial(_ctl_exit, tty, ctype, write, restoration, limit=limit))
+	_ctl_init(tty, ctype, write, limit=limit)
 
 	return tty

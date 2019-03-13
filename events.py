@@ -39,6 +39,8 @@ def ictlchr(ctlid:str, offset=ord('A')-1) -> int:
 
 # Escape codes mapped to constructed Key presses.
 escape_codes = {
+	# XXX: This &escape_codes table will be reduced once a proper parser is implemented.
+
 	# xterm focus events
 	'[I': Char(('focus', '[I', 'in', 0)),
 	'[O': Char(('focus', '[O', 'out', 0)),

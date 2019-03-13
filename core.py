@@ -1,7 +1,13 @@
 """
 # Fundamental classes for representing input from a terminal and caret state management.
+
+# [ Types ]
+# /&Page/
+	# &Phrase sequence.
 """
+import typing
 import functools
+from ..system import text
 
 class Point(tuple):
 	"""
@@ -178,9 +184,9 @@ class Position(object):
 	# /datum/
 		# The absolute position. (start)
 	# /offset/
-		# The actual position relative to the &datum. (current)
+		# The actual position relative to the &datum. (current=datum+offset)
 	# /magnitude/
-		# The size of the range relative to the &datum. (stop)
+		# The size of the range relative to the &datum. (stop=datum+magnitude)
 	"""
 	@property
 	def minimum(self):
@@ -525,3 +531,566 @@ class Vector(object):
 	def restore(self, snapshot):
 		self.horizontal.restore(snapshot[0])
 		self.vertical.restore(snapshot[1])
+
+class Traits(int):
+	"""
+	# Word attributes used to describe a part of a &Phrase.
+
+	# The bitmap of attributes allows for conflicting decorations;
+	# &.terminal makes no presumptions about how the terminal responds to
+	# these, so constraints that might be expected are not present.
+	"""
+	__slots__ = ()
+
+	def _build(fields):
+		return fields, {
+			fields[i]: i for i in range(len(fields))
+		}
+
+	fields, field_index = _build(
+		(
+			'underline',
+			'double-underline',
+
+			'inverse',
+			'cross',
+			'italic',
+
+			'invisible',
+			'feint',
+			'bold',
+
+			'blink',
+			'rapid',
+
+			'overline',
+			'frame',
+			'encircle',
+		)
+	)
+	del _build
+
+	def __and__(self, rhs):
+		return self.__class__(super().__and__(rhs))
+	def __or__(self, rhs):
+		return self.__class__(super().__or__(rhs))
+	def __xor__(self, rhs):
+		return self.__class__(super().__xor__(rhs))
+
+	@classmethod
+	def all(Class):
+		return Class((1 << len(Class.fields)) - 1)
+
+	@classmethod
+	def none(Class):
+		return Class(0)
+
+	@classmethod
+	def construct(Class, *style):
+		i = 0
+		for x in style:
+			i = i | (1 << Class.field_index[x])
+
+		return Class(i)
+
+	def test(self, *names):
+		for trait in names:
+			if not self & (1 << self.field_index[trait]):
+				return False
+
+		return True
+
+	def __iter__(self):
+		for name, i in self.field_index.items():
+			if self & (1 << i):
+				yield name
+
+	def __str__(self):
+		if self:
+			return '<' + '|'.join(self) + '>'
+		return '<notraits>'
+
+class RenderParameters(tuple):
+	"""
+	# Rendering context parameters to use for displaying text on a Terminal.
+	"""
+	__slots__ = ()
+
+	_tt_none = Traits.none()
+	_cc_none = -1024
+	_tc_none = -1024
+
+	@property
+	def textcolor(self) -> int:
+		"""
+		# The RGB color to use as the text color.
+		"""
+		return self[0]
+
+	@property
+	def cellcolor(self) -> int:
+		"""
+		# The RGB color to use as the cell's background color.
+		"""
+		return self[1]
+
+	@property
+	def traits(self) -> Traits:
+		"""
+		# The set of &Traits used to style displayed text.
+		"""
+		return self[2]
+
+	@classmethod
+	def from_default(Class):
+		"""
+		# Construct an instance using the default text and cell colors with no traits.
+		"""
+		return Class((Class._tc_none, Class._cc_none, Class._tt_none))
+
+	@classmethod
+	def from_colors(Class, textcolor, cellcolor):
+		return Class((textcolor, cellcolor, Traits(0)))
+
+	@classmethod
+	def from_named_fields(Class, textcolor, cellcolor, *traits) -> 'RenderParameters':
+		"""
+		"""
+		if textcolor is None:
+			tc = Class._tc_none
+		if cellcolor is None:
+			cc = Class._cc_none
+
+		tt = Traits.construct(*traits)
+		return Class((tc, cc, tt))
+
+	def set(self, traits) -> 'RenderParameters':
+		"""
+		# Create a new instance with the given &traits applied
+		# the traits present in &self.
+		"""
+		return self.__class__((
+			self[0], self[1], traits | self[2]
+		))
+
+	def clear(self, traits) -> 'RenderParameters':
+		c = self[2]
+		return self.__class__((
+			self[0], self[1], ((c & traits) ^ c)
+		))
+
+	def update(self, textcolor=None, cellcolor=None, traits=None):
+		if traits is None:
+			t = self[2]
+		else:
+			t = self[2] | traits
+
+		return self.__class__((
+			textcolor if textcolor is not None else self[0],
+			cellcolor if cellcolor is not None else self[1],
+			t,
+		))
+
+class Phrase(tuple):
+	"""
+	# A terminal Phrase expressing a sequence of styled words.
+
+	# Each Word in the Phrase contains an arbitrary string associated with a foreground,
+	# background, and &Traits.
+	"""
+	__slots__ = ()
+
+	@staticmethod
+	def grapheme(text, index, cells=text.cells, slice=slice):
+		"""
+		# Retrieve the slice to the full grapheme cluster present
+		# at the given &index in &text.
+
+		# If the given &index refers to a zero width character,
+		# find the non-zero width character before the index.
+		# If the given &index refers to a non-zero width character,
+		# find all the zero width characters after it.
+		"""
+		start = text[index]
+		count = 0
+
+		c = cells(start)
+		if c < 0:
+			# likely surrogate pair; identify latter part of pair
+			# and consume following combinations normally.
+			pass
+
+		if c > 0:
+			# check after
+			for i in range(index+1, len(text)):
+				if cells(text[i]):
+					break
+				count += 1
+			return slice(index, index+count+1)
+		else: # c==0
+			# check before
+			for i in range(index-1, -1, -1):
+				if cells(text[i]):
+					break
+				count += 1
+			return slice(index-count-1, index+1)
+
+	@staticmethod
+	def default(text, traits=(None,None,Traits(0))):
+		"""
+		# Construct a Word Specification with default text attributes.
+		"""
+		return (text, traits)
+
+	@classmethod
+	def wordspace(Class):
+		"""
+		# Word specification consisting of a single space.
+		"""
+		return Class.default(" ")
+
+	@classmethod
+	def construct(Class,
+			specifications:typing.Sequence[object],
+			RenderParametersConstructor=RenderParameters,
+			cells=text.cells
+		) -> 'Phrase':
+		"""
+		# Create a &Phrase instance from the &specifications designating
+		# the text of the words and their properties.
+
+		# [ Parameters ]
+		# /specifications/
+			# The words and their attributes making up the phrase.
+		"""
+		specs = [
+			(cells(spec[0]), spec[0], RenderParameters(spec[1:]))
+			for spec in specifications
+		]
+
+		return super().__new__(Class, specs)
+
+	def combine(self) -> 'Phrase':
+		"""
+		# Combine word specifications with identical attributes(styles).
+		# Returns a new &Phrase instance with any redundant word attributes eliminated.
+		"""
+
+		out = [self[0]]
+		cur = out[-1]
+
+		for spec in self[1:]:
+			if spec[2] == cur[2]:
+				cur = out[-1] = (cur[0] + spec[0], cur[1] + spec[1], cur[3:])
+			else:
+				out.append(spec)
+				cur = spec
+
+		return self.__class__(out)
+
+	def cellcount(self):
+		"""
+		# Number of cells that the phrase will occupy.
+		"""
+		return sum(x[0] for x in self)
+
+	def stringlength(self):
+		"""
+		# Sum of the lengths of the text strings in the phrase.
+		"""
+		return sum(len(x[1]) for x in self)
+
+	def translate(self, *indexes, iter=iter, len=len, next=next, cells=text.cells):
+		"""
+		# Get the cell offsets of the given character indexes.
+
+		# [ Parameters ]
+		# /indexes/
+			# Ordered sequence of grapheme (cluster) indexes to resolve.
+			# (Currently a lie, it is mere character index translation)
+		"""
+		offset = 0
+		nc = 0
+		noffset = 0
+
+		if not self:
+			for x in indexes:
+				if x == 0:
+					yield 0
+				else:
+					raise IndexError(indexes[0])
+			return
+
+		i = iter(y[:2] for y in self)
+		x = next(i)
+
+		c, t = x
+		chars = len(t)
+		noffset = offset + chars
+
+		for y in indexes:
+			while x is not None:
+				if noffset >= y:
+					# found index, report and jump to next index
+					yield nc + cells(t[:y-offset])
+					break
+
+				nc += c
+				offset = noffset
+				try:
+					x = next(i)
+				except StopIteration:
+					yield None
+					break
+
+				# New words.
+				c, t = x
+				chars = len(t)
+				noffset = offset + chars
+			else:
+				# index out of range
+				yield None
+
+	def findcells(self, *offsets, index=(0,0,0)):
+		lfc = self.lfindcell
+		last = 0
+		for co in offsets:
+			index = lfc(co - last, index)
+			last = co
+			yield index
+
+	def reverse(self):
+		"""
+		# Construct an iterator to the concrete words for creating a new &Phrase
+		# instance that is in reversed form of the words in &self.
+		# `assert phrase == Phrase(Phrase(phrase.reverse()).reverse())`
+		"""
+		return (
+			(x[0], str(reversed(x[1])),) + x[2:]
+			for x in reversed(self)
+		)
+
+	def subphrase(self, start, stop, adjust=(lambda x: x)):
+		"""
+		# Extract the subphrase at the given cell offsets.
+		"""
+
+		return self.__class__(self.select(start, stop, adjust))
+
+	def select(self, start, stop, adjust=(lambda x: x), cells=text.cells):
+		"""
+		# Extract the subphrase at the given indexes with the given modifications
+		# applied. The modifications are intentionally
+
+		# [ Parameters ]
+		# /adjust/
+			# Callable that changes the text properties of the selected words.
+			# Defaults to no change.
+		"""
+		start_i, char_i, acell_i = start
+		stop_i, schar_i, bcell_i = stop
+
+		if start_i == stop_i:
+			# Single word phrase.
+			word = self[start_i]
+			text = word[1][char_i:schar_i]
+			yield (cells(text), text, adjust(word[2]))
+		else:
+			word = self[start_i]
+			text = word[1][char_i:]
+			if text:
+				yield (cells(text), text, adjust(word[2]))
+
+			yield from self[start_i+1:stop_i]
+
+			word = self[stop_i]
+			text = word[1][:schar_i]
+			if text:
+				yield (cells(text), text, adjust(word[2]))
+
+	# lfindcell and rfindcell are conceptually identical,
+	# but it's a little tricky to keep the Python implementation dry
+	# without introducing some unwanted overhead.
+	# So, the implementation redundancy is permitted with the minor variations.
+
+	def lfindcell(self,
+			celloffset:int, start=(0,0,0),
+			map=map, len=len, range=range,
+			cells=text.cells
+		):
+		"""
+		# Find the word and character index using a cell offset.
+		"""
+
+		wordoffset, character_index, wordcell = start
+		# relative to wordcell for continuation support
+		offset = celloffset + wordcell
+		cell_index = wordcell
+
+		i = l = 0
+		if wordoffset < 16:
+			# Small offset? recalc from sum.
+			s = sum([x[0] for x in self[:wordoffset]])
+		else:
+			# Large offset, recalc from cells.
+			s = wordcell - cells(self[wordoffset][1][:character_index])
+
+		nwords = len(self)
+		ri = range(wordoffset, nwords, 1)
+
+		# Scan for offset wrt the cells.
+		for i in ri:
+			l = self[i][0]
+			s += l
+			if s >= offset:
+				if i != wordoffset:
+					# Reset index if in a new word.
+					character_index = 0
+				break
+			cell_index = s
+		else:
+			# celloffset is beyond the end of the phrase
+			return None
+
+		itext = self[i][1]
+
+		charcells = 0
+		for charcells in map(cells, itext[character_index:]):
+			if cell_index >= offset:
+				break
+			cell_index += charcells
+			character_index += 1
+
+		# Greedily skip any adjacent zerowidth characters.
+		# rfindcell does this naturally.
+		for charcells in map(cells, itext[character_index:]):
+			if charcells:
+				# Not zero width, keep current index.
+				break
+			character_index += 1
+		else:
+			# End of word
+			while self[i][1][character_index:character_index+1] == "":
+				i += 1
+				if i == nwords:
+					i -= 1
+					break
+				character_index = 0
+
+		return (i, character_index, cell_index)
+
+	def rfindcell(self,
+			celloffset:int, start=(0,0,0),
+			map=map, len=len, range=range, reversed=reversed,
+			cells=text.cells
+		):
+		"""
+		# Find the word and character index using a cell offset.
+		"""
+
+		wordoffset, character_index, wordcell = start
+
+		# relative to wordcell for continuation support
+		offset = celloffset + wordcell
+
+		i = l = s = 0
+		nwords = len(self)
+		ri = range(nwords-wordoffset-1, -1, -1)
+
+		for i in ri:
+			l = self[i][0]
+			cell_index = s
+			s += l
+			if s >= offset:
+				break
+		else:
+			# celloffset is beyond the beginning of the phrase.
+			return None
+
+		itext = self[i][1]
+		if character_index:
+			itext = itext[:-character_index]
+		itextlen = len(itext)
+
+		for charcells in map(cells, reversed(itext)):
+			if cell_index >= offset:
+				break
+			cell_index += charcells
+			character_index += 1
+
+		return (nwords-i, character_index, cell_index)
+
+	def lstripcells(self,
+			cellcount:int, substitute=(lambda x: '*'),
+			list=list, len=len, range=range,
+			cells=text.cells
+		):
+		"""
+		# Remove the given number of cells from the start of the phrase.
+
+		# If the cell count traverses a wide character, the &substitute parameter is
+		# called with the character as its only argument and the result is prefixed
+		# to the start of the phrase.
+		"""
+
+		if cellcount == 0:
+			# Zero offset, no trim.
+			return self
+
+		i, character_index, cell_index = self.lfindcell(cellcount)
+		itext = self[i][1]
+
+		if cellcount == cell_index:
+			# Aligned.
+			txt = itext[character_index:]
+		else:
+			# Cut on wide character and substitute.
+			grapheme = self.grapheme(itext, character_index - 1)
+			txt = substitute(itext[grapheme]) + itext[character_index:]
+
+		# final words
+		out = list(self[i:]) # Include the i'th; it will be overwritten.
+		out[0] = ((cells(txt), txt,) + out[0][2:])
+
+		return self.__class__(out)
+
+	def rstripcells(self,
+			cellcount:int, substitute=(lambda x: '*'),
+			list=list, len=len, range=range,
+			cells=text.cells
+		):
+		"""
+		# Remove the given number of cells from the end of the phrase.
+
+		# If the cell count traverses a wide character, the &substitute parameter is
+		# called with the character as its only argument and the result is suffixed
+		# to the end of the phrase.
+		"""
+
+		if cellcount == 0:
+			# Zero offset, no trim.
+			return self
+
+		nwords = len(self)
+		roffset, rcharacter_index, cell_index = self.rfindcell(cellcount)
+		i = nwords - roffset
+
+		out = list(self[:i+1])
+		itext = out[-1][1]
+		character_index = len(itext) - rcharacter_index
+
+		if cellcount == cell_index:
+			# Aligned.
+			txt = itext[:character_index]
+		else:
+			# Cut on double width and substitute.
+			grapheme = self.grapheme(itext, character_index)
+			txt = itext[:character_index] + substitute(itext[grapheme])
+
+		# final words
+		out[-1] = ((cells(txt), txt,) + out[-1][2:])
+
+		return self.__class__(out)
+
+# Common descriptor endpoint.
+Page = typing.Sequence[Phrase]

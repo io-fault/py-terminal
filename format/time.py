@@ -57,11 +57,11 @@ def f_date(relation, subject):
 	y, m, d = subject.select('date')
 
 	return [
-		(str(y), (), ccolor),
-		('-', (), separator),
-		(str(m).rjust(2, '0'), (), mcolor),
-		('-', (), separator),
-		(str(d).rjust(2, '0'), (), dcolor),
+		(str(y), ccolor),
+		('-', separator),
+		(str(m).rjust(2, '0'), mcolor),
+		('-', separator),
+		(str(d).rjust(2, '0'), dcolor),
 	]
 
 def f_time(relation, subject):
@@ -76,20 +76,20 @@ def f_time(relation, subject):
 		sposition, scolor = f_time_palette(secs, rate=(lambda x: (abs(x) // 10) ** 0.5))
 
 		return [
-			(str(h).rjust(2, '0'), (), hcolor),
-			(':', (), separator),
-			(str(M).rjust(2, '0'), (), mcolor),
-			(':', (), separator),
-			(str(s).rjust(2, '0'), (), scolor),
+			(str(h).rjust(2, '0'), hcolor),
+			(':', separator),
+			(str(M).rjust(2, '0'), mcolor),
+			(':', separator),
+			(str(s).rjust(2, '0'), scolor),
 		]
 	else:
 		# The delta was greater than one day and considers the time of day irrelevant.
 		return [
-			(str(h).rjust(2, '0'), (), irrelevant),
-			(':', (), separator),
-			(str(M).rjust(2, '0'), (), irrelevant),
-			(':', (), separator),
-			(str(s).rjust(2, '0'), (), irrelevant),
+			(str(h).rjust(2, '0'), irrelevant),
+			(':', separator, None),
+			(str(M).rjust(2, '0'), irrelevant),
+			(':', separator, None),
+			(str(s).rjust(2, '0'), irrelevant),
 		]
 
 def f_subsecond(relation, timestamp, precision, exponents=metric.name_to_exponent):
@@ -99,12 +99,12 @@ def f_subsecond(relation, timestamp, precision, exponents=metric.name_to_exponen
 	exp = -exponents[precision]
 	if abs(m) > m.of(second=1):
 		return [
-			(str(ss).rjust(exp, '0'), (), irrelevant)
+			(str(ss).rjust(exp, '0'), irrelevant, None)
 		]
 	else:
 		position, color = f_time_palette(m.select(precision), rate=(lambda x: (abs(x) // 1000) ** 0.5))
 		return [
-			(str(ss).rjust(exp, '0'), (), color)
+			(str(ss).rjust(exp, '0'), color, None)
 		]
 
 def f_timestamp(relation, timestamp, precision='microsecond'):
@@ -114,20 +114,21 @@ def f_timestamp(relation, timestamp, precision='microsecond'):
 	prefix = f_date(relation, timestamp)
 	suffix = f_time(relation, timestamp)
 	yield from prefix
-	yield ('T', (), separator)
+	yield ('T', separator)
 	yield from suffix
 	if precision is not None:
-		yield ('.', (), separator)
+		yield ('.', separator)
 		yield from f_subsecond(relation, timestamp, precision)
 
 if __name__ == '__main__':
 	import sys
 	from ...time import library as t
 	from .. import matrix
-	dev = matrix.Screen()
+	screen = matrix.Screen()
 	values = sys.argv[1:] # ri, path, ts, dir: libformat dir /
 
 	now = t.now()
 	for x in values:
 		ts = t.Timestamp.of(iso=x)
-		sys.stderr.buffer.write(dev.renderline(list(f_timestamp(now, ts))) + b'\n')
+		ph = matrix.Phrase.construct(x+(None,None) for x in f_timestamp(now, ts))
+		sys.stderr.buffer.write(b''.join(screen.render(ph)) + b'\n')

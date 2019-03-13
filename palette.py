@@ -1,5 +1,5 @@
 """
-# Color code translations for 256-color supporting terminals. Sourced from xterm.
+# Color code translations for the 256-color palette defined by xterm.
 
 # &translate and &code_string are the primary functions used to select 256-color palette
 # entries from 24-bit RGB values.
@@ -105,38 +105,6 @@ def scale_color(r, g, b, initial = 0x5f):
 
 	return color
 
-sixteen_colors = {
-	# grays
-	0x000000: 0,
-	0xc0c0c0: 7,
-	0x808080: 8,
-	0xFFFFFF: 15,
-
-	# red
-	0x800000: 1,
-	0xFF0000: 9,
-
-	# green
-	0x008000: 2,
-	0x00FF00: 10,
-
-	# yellow
-	0x808000: 3,
-	0xFFFF00: 11,
-
-	# blue
-	0x000080: 4,
-	0x0000FF: 12,
-
-	# magenta
-	0x800080: 5,
-	0xFF00FF: 13,
-
-	# cyan
-	0x008080: 6,
-	0x00FFFF: 14,
-}
-
 def translate(rgb:int):
 	"""
 	# Translate the given RGB color into a terminal color and gray colors that exist in
@@ -146,12 +114,10 @@ def translate(rgb:int):
 	# both gray and color palettes. &scale_gray and &scale_color are used to the select
 	# the closest value in the corresponding palette.
 
-	# [ Effects ]
-
-	# /Product
-		# A pair of tuples containing both the scaled gray and color. The tuples are
-		# pairs with the first item designating whether it's color or gray and the second
-		# item being the scaled value.
+	# [ Return ]
+	# A pair of tuples containing both the scaled gray and color. The tuples are
+	# pairs with the first item designating whether it's color or gray and the second
+	# item being the scaled value.
 	"""
 	typ = None
 	bw = 0
@@ -204,7 +170,6 @@ def index():
 	"""
 	import itertools
 	idx = dict()
-	idx.update(((v, k) for k, v in sixteen_colors.items()))
 	idx.update(((v, k) for k, v in map(gray_palette, range(24))))
 	idx.update(((v, k) for k, v in itertools.starmap(
 		color_palette, itertools.product(range(6),range(6),range(6))
@@ -213,8 +178,8 @@ def index():
 
 if __name__ == '__main__':
 	import sys
-	from . import device
-	d = device.Display('utf-8')
+	from . import matrix
+	d = matrix.Screen()
 	# render a palette to the screen
 	escape = '\x1b['.__add__
 

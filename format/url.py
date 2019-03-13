@@ -36,7 +36,7 @@ colors = {
 
 def f_struct(struct):
 	for t in ri.tokens(struct):
-		yield (t[1], (), colors.get(t[0]))
+		yield (t[1], colors.get(t[0]), None, None)
 
 def f_string(string):
 	"""
@@ -47,8 +47,10 @@ def f_string(string):
 if __name__ == '__main__':
 	import sys
 	from .. import matrix
-	dev = matrix.Screen()
+	screen = matrix.Screen()
 	values = sys.argv[1:] # ri, path, ts, dir: libformat dir /
 
 	for x in values:
-		sys.stderr.buffer.write(dev.renderline(list(f_string(x))) + b'\n')
+		sys.stderr.buffer.write(
+			b''.join(screen.render(matrix.Phrase.construct(f_string(x)))) + b'\n'
+		)
