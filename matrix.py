@@ -10,6 +10,7 @@ import typing
 import codecs
 
 from ..system import text
+from . import core
 from .core import \
 	Units, \
 	Phrase, \
