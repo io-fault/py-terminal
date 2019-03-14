@@ -176,6 +176,46 @@ def test_RenderParameters_traits(test):
 	rp = rp.set(dul)
 	test/list(rp.clear(ul).traits) == ['double-underline']
 
+def test_Units(test):
+	"""
+	# - &library.Units
+	"""
+
+	# Validate rather features.
+	# They are important, however, for the use case
+	# of consolidating cells.
+
+	u = library.Units(("->",))
+	test/str(u) == "->"
+	test/len(u) == 1
+	test/u.encode('utf-8') == b"->"
+
+	u = library.Units(("->", "::"))
+	test/str(u) == "->::"
+	test/len(u) == 2
+	test/u.encode('utf-8') == b"->::"
+
+	# Check iter() and __add__
+	test.isinstance(u + ("rhs",), library.Units)
+	test/''.join(list(u)) == str(u)
+
+def test_Units_slice(test):
+	"""
+	# - &library.Units.__getitem__
+	"""
+
+	u = library.Units(("->", "::"))
+	test/str(u) == "->::"
+	test/len(u) == 2
+	test/u.encode('utf-8') == b"->::"
+
+	test/u[0] == "->"
+	test/u[1] == "::"
+	test.isinstance(u[:1], library.Units)
+	u += ("rhs",)
+	test.isinstance(u, library.Units)
+	test/u[:] == u
+
 def test_grapheme(test):
 	"""
 	# - &library.Phrase.grapheme

@@ -704,6 +704,9 @@ class Units(tuple):
 	def __str__(self, map=map, str=str, tuple=tuple):
 		return ''.join(map(str, super().__iter__()))
 
+	def encode(self, encoding, errors='surrogateescape'):
+		return str(self).encode(encoding, errors=errors)
+
 	def __getitem__(self, item, isinstance=isinstance, slice=slice):
 		if isinstance(item, slice):
 			# Make sure to return typed instance for slices.
