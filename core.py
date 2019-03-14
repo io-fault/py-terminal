@@ -7,6 +7,7 @@
 """
 import typing
 import functools
+import itertools
 from ..system import text
 
 class Point(tuple):
@@ -691,6 +692,77 @@ class RenderParameters(tuple):
 			t,
 		))
 
+class Units(tuple):
+	"""
+	# Explicitly partitioned string for forced segmentation.
+
+	# Provides a string-like object for explicitly designating the User Perceived Character
+	# boundaries. Primarily used for managing surrogate pairs and multicharacter tokens.
+	"""
+	__slots__ = ()
+
+	def __str__(self, map=map, str=str, tuple=tuple):
+		return ''.join(map(str, super().__iter__()))
+
+	def __getitem__(self, item, isinstance=isinstance, slice=slice):
+		if isinstance(item, slice):
+			# Make sure to return typed instance for slices.
+			return self.__class__(super().__getitem__(item))
+
+		return super().__getitem__(item)
+
+	def __add__(self, rhs):
+		return self.__class__(super().__add__(rhs))
+
+def grapheme(text, index, cells=text.cells, slice=slice, Units=Units, str=str):
+	"""
+	# Retrieve the slice to characters that make up an indivisible unit of cells.
+	# This is not always consistent with User Perceived Characters.
+
+	# If the given &index refers to a zero width character,
+	# find the non-zero width character before the index.
+	# If the given &index refers to a non-zero width character,
+	# find all the zero width characters after it.
+
+	# ! WARNING:
+		# This is **not** consistent with Unicode grapheme (clusters).
+	"""
+	if isinstance(text, Units):
+		# Units instances are one-to-one.
+		return slice(index, index+1)
+
+	start = text[index:index+1]
+	count = 0
+
+	c = cells(str(start))
+	if c < 0:
+		# check surrogate pair; identify latter part of pair
+		# and consume following combinations normally.
+		pass
+
+	if c > 0:
+		# check after
+		for i in range(index+1, len(text)):
+			if cells(text[i]):
+				break
+			count += 1
+		return slice(index, index+count+1)
+	else: # c==0
+		# check before
+		for i in range(index-1, -1, -1):
+			if cells(text[i]):
+				break
+			count += 1
+		return slice(index-count-1, index+1)
+
+def itergraphemes(text, getslice=grapheme, len=len):
+	end = len(text)
+	i = 0
+	while i < end:
+		s = getslice(text, i)
+		yield s
+		i = s.stop
+
 class Phrase(tuple):
 	"""
 	# A terminal Phrase expressing a sequence of styled words.
@@ -699,41 +771,6 @@ class Phrase(tuple):
 	# background, and &Traits.
 	"""
 	__slots__ = ()
-
-	@staticmethod
-	def grapheme(text, index, cells=text.cells, slice=slice):
-		"""
-		# Retrieve the slice to the full grapheme cluster present
-		# at the given &index in &text.
-
-		# If the given &index refers to a zero width character,
-		# find the non-zero width character before the index.
-		# If the given &index refers to a non-zero width character,
-		# find all the zero width characters after it.
-		"""
-		start = text[index]
-		count = 0
-
-		c = cells(start)
-		if c < 0:
-			# likely surrogate pair; identify latter part of pair
-			# and consume following combinations normally.
-			pass
-
-		if c > 0:
-			# check after
-			for i in range(index+1, len(text)):
-				if cells(text[i]):
-					break
-				count += 1
-			return slice(index, index+count+1)
-		else: # c==0
-			# check before
-			for i in range(index-1, -1, -1):
-				if cells(text[i]):
-					break
-				count += 1
-			return slice(index-count-1, index+1)
 
 	@staticmethod
 	def default(text, traits=(None,None,Traits(0))):
@@ -753,7 +790,7 @@ class Phrase(tuple):
 	def construct(Class,
 			specifications:typing.Sequence[object],
 			RenderParametersConstructor=RenderParameters,
-			cells=text.cells
+			cells=text.cells, str=str
 		) -> 'Phrase':
 		"""
 		# Create a &Phrase instance from the &specifications designating
@@ -764,7 +801,7 @@ class Phrase(tuple):
 			# The words and their attributes making up the phrase.
 		"""
 		specs = [
-			(cells(spec[0]), spec[0], RenderParameters(spec[1:]))
+			(cells(str(spec[0])), spec[0], RenderParameters(spec[1:]))
 			for spec in specifications
 		]
 
@@ -866,7 +903,7 @@ class Phrase(tuple):
 		# `assert phrase == Phrase(Phrase(phrase.reverse()).reverse())`
 		"""
 		return (
-			(x[0], str(reversed(x[1])),) + x[2:]
+			(x[0], "".join(reversed(x[1])),) + x[2:]
 			for x in reversed(self)
 		)
 
@@ -916,7 +953,7 @@ class Phrase(tuple):
 	def lfindcell(self,
 			celloffset:int, start=(0,0,0),
 			map=map, len=len, range=range,
-			cells=text.cells
+			cells=text.cells, islice=itertools.islice
 		):
 		"""
 		# Find the word and character index using a cell offset.
@@ -930,10 +967,12 @@ class Phrase(tuple):
 		i = l = 0
 		if wordoffset < 16:
 			# Small offset? recalc from sum.
-			s = sum([x[0] for x in self[:wordoffset]])
-		else:
+			s = sum(x[0] for x in self[:wordoffset])
+		elif character_index:
 			# Large offset, recalc from cells.
 			s = wordcell - cells(self[wordoffset][1][:character_index])
+		else:
+			s = wordcell
 
 		nwords = len(self)
 		ri = range(wordoffset, nwords, 1)
@@ -955,7 +994,7 @@ class Phrase(tuple):
 		itext = self[i][1]
 
 		charcells = 0
-		for charcells in map(cells, itext[character_index:]):
+		for charcells in map(cells, islice(itext, character_index, None)):
 			if cell_index >= offset:
 				break
 			cell_index += charcells
@@ -963,14 +1002,14 @@ class Phrase(tuple):
 
 		# Greedily skip any adjacent zerowidth characters.
 		# rfindcell does this naturally.
-		for charcells in map(cells, itext[character_index:]):
+		for charcells in map(cells, islice(itext, character_index, None)):
 			if charcells:
 				# Not zero width, keep current index.
 				break
 			character_index += 1
 		else:
-			# End of word
-			while self[i][1][character_index:character_index+1] == "":
+			# End of word; empty string or empty Units
+			while not self[i][1][character_index:character_index+1]:
 				i += 1
 				if i == nwords:
 					i -= 1
@@ -980,9 +1019,9 @@ class Phrase(tuple):
 		return (i, character_index, cell_index)
 
 	def rfindcell(self,
-			celloffset:int, start=(0,0,0),
-			map=map, len=len, range=range, reversed=reversed,
-			cells=text.cells
+			celloffset:int, start=(-1,0,0),
+			map=map, len=len, range=range,
+			cells=text.cells, islice=itertools.islice
 		):
 		"""
 		# Find the word and character index using a cell offset.
@@ -992,33 +1031,50 @@ class Phrase(tuple):
 
 		# relative to wordcell for continuation support
 		offset = celloffset + wordcell
+		cell_index = wordcell
 
-		i = l = s = 0
+		i = l = 0
 		nwords = len(self)
-		ri = range(nwords-wordoffset-1, -1, -1)
+		ri = range(wordoffset, -nwords-1, -1)
+
+		if wordoffset > -16:
+			s = sum(x[0] for x in self[nwords+wordoffset+1:])
+		elif character_index:
+			s = wordcell - cells(self[wordoffset][1][-character_index:])
+		else:
+			s = wordcell
 
 		for i in ri:
 			l = self[i][0]
-			cell_index = s
 			s += l
 			if s >= offset:
+				if i != wordoffset:
+					character_index = 0
 				break
+			cell_index = s
 		else:
 			# celloffset is beyond the beginning of the phrase.
 			return None
 
 		itext = self[i][1]
-		if character_index:
-			itext = itext[:-character_index]
-		itextlen = len(itext)
+		istart = len(itext)-character_index-1
 
-		for charcells in map(cells, reversed(itext)):
+		for charcells in map(cells, (itext[x] for x in range(istart, -1, -1))):
 			if cell_index >= offset:
 				break
 			cell_index += charcells
 			character_index += 1
+		else:
+			# End of word
+			if nwords + i == 0:
+				# End of Phrase.
+				pass
+			elif cell_index == offset:
+				# Only step into the next word if it's not torn.
+				i -= 1
+				character_index = 0
 
-		return (nwords-i, character_index, cell_index)
+		return (i, character_index, cell_index)
 
 	def lstripcells(self,
 			cellcount:int, substitute=(lambda x: '*'),
@@ -1045,8 +1101,8 @@ class Phrase(tuple):
 			txt = itext[character_index:]
 		else:
 			# Cut on wide character and substitute.
-			grapheme = self.grapheme(itext, character_index - 1)
-			txt = substitute(itext[grapheme]) + itext[character_index:]
+			g = grapheme(itext, character_index - 1)
+			txt = substitute(itext[g]) + itext[character_index:]
 
 		# final words
 		out = list(self[i:]) # Include the i'th; it will be overwritten.
@@ -1071,21 +1127,19 @@ class Phrase(tuple):
 			# Zero offset, no trim.
 			return self
 
-		nwords = len(self)
-		roffset, rcharacter_index, cell_index = self.rfindcell(cellcount)
-		i = nwords - roffset
+		i, rcharacter_index, cell_index = self.rfindcell(cellcount)
 
-		out = list(self[:i+1])
+		out = list(self[:len(self)+i+1])
 		itext = out[-1][1]
-		character_index = len(itext) - rcharacter_index
+		character_right_offset = len(itext) - rcharacter_index
 
 		if cellcount == cell_index:
-			# Aligned.
-			txt = itext[:character_index]
+			# Aligned on character.
+			txt = itext[:character_right_offset]
 		else:
-			# Cut on double width and substitute.
-			grapheme = self.grapheme(itext, character_index)
-			txt = itext[:character_index] + substitute(itext[grapheme])
+			# Tear multicell character and substitute.
+			g = grapheme(itext, character_right_offset)
+			txt = itext[:g.start] + substitute(itext[g])
 
 		# final words
 		out[-1] = ((cells(txt), txt,) + out[-1][2:])

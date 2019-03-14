@@ -11,6 +11,7 @@ import codecs
 
 from ..system import text
 from .core import \
+	Units, \
 	Phrase, \
 	Traits, \
 	RenderParameters, \

@@ -1,3 +1,6 @@
+"""
+# Tests for &.core.
+"""
 from .. import core as library
 
 def test_Point(test):
@@ -173,11 +176,11 @@ def test_RenderParameters_traits(test):
 	rp = rp.set(dul)
 	test/list(rp.clear(ul).traits) == ['double-underline']
 
-def test_Phrase_grapheme(test):
+def test_grapheme(test):
 	"""
 	# - &library.Phrase.grapheme
 	"""
-	getg = library.Phrase.grapheme
+	getg = library.grapheme
 	t = "謝了春\u0353."
 
 	test/t[getg(t, 0)] == t[0]
@@ -187,6 +190,10 @@ def test_Phrase_grapheme(test):
 	# Primary checks.
 	test/t[getg(t, 2)] == t[2:-1]
 	test/t[getg(t, 3)] == t[2:-1]
+
+def test_itergraphemes(test):
+	t = "f\u0356ield\u035B"
+	l=list(t[i] for i in library.itergraphemes(t))
 
 def test_Phrase_properties(test):
 	"""
@@ -233,7 +240,109 @@ def test_Phrase_rstripcells_singular(test):
 	])
 
 	result = pair.rstripcells(6)
-	test/result == ((5, "first", (None, None, 0)), (0, '', (None, None, 0)))
+	test/result == ((5, "first", (None, None, 0)),)
+
+notraits = library.Traits.none()
+findcell_phrase_1 = library.Phrase.construct([
+	("field", None, None, notraits),
+	(" ", None, None, notraits),
+	("sequence", None, None, notraits),
+	(",", None, None, notraits),
+	(" ", None, None, notraits),
+	("terminal", None, None, notraits),
+])
+
+# Combining Characters; limited to testing on the edges of words to avoid displacing indexes.
+findcell_phrase_1_cc = library.Phrase.construct([
+	("field\u0356\u035B", None, None, notraits),
+	(" ", None, None, notraits),
+	("sequence\u035B", None, None, notraits),
+	(",", None, None, notraits),
+	(" \u035B", None, None, notraits),
+	("terminal", None, None, notraits),
+])
+
+# Only with respect to single unit words.
+findcell_phrase_1_units = library.Phrase.construct([
+	("field", None, None, notraits),
+	(library.Units((" ",)), None, None, notraits),
+	("sequence", None, None, notraits),
+	(library.Units((",",)), None, None, notraits),
+	(library.Units((" ",)), None, None, notraits),
+	("terminal", None, None, notraits),
+])
+
+def t_lfindcell_1(test, phrase):
+	findmethod = phrase.lfindcell
+	cells = phrase.cellcount()
+
+	test/findmethod(0) == (0, 0, 0)
+	test/findmethod(1) == (0, 1, 1)
+	test/findmethod(0, start=(0, 1, 1)) == (0, 1, 1)
+	test/findmethod(1, start=(0,1,1)) == (0, 2, 2)
+	test/findmethod(2, start=(0,2,2)) == (0, 4, 4)
+
+	# Select next word.
+	test/findmethod(2, start=(0,3,3)) == (1, 0, 5)
+	test/findmethod(3, start=(0,2,2)) == (1, 0, 5)
+	test/findmethod(0, start=(0,5,5)) == (1, 0, 5)
+	#test/findmethod(0, start=(0,6,6)) == (1, 1, 6) carry on invalid addresses?
+
+	test/findmethod(0, start=(1,0,5)) == (1, 0, 5)
+	test/findmethod(1, start=(1,0,5)) == (2, 0, 6)
+	test/findmethod(2, start=(1,0,5)) == (2, 1, 7)
+
+	edge = findmethod(cells)
+	test/edge == (len(phrase)-1, len(phrase[-1][1]), phrase.cellcount())
+	test/findmethod(0, start=edge) == edge
+	test/findmethod(1, start=(edge[0], edge[1]-1, edge[2]-1)) == edge
+
+	test/findmethod(1, start=edge) == None # Beyond edge.
+
+def test_Phrase_lfindcell(test):
+	"""
+	# - &library.Phrase.lfindcell
+	"""
+	library.text.setlocale()
+	t_lfindcell_1(test, findcell_phrase_1)
+	t_lfindcell_1(test, findcell_phrase_1_cc)
+	t_lfindcell_1(test, findcell_phrase_1_units)
+
+def t_rfindcell_1(test, phrase):
+	# r/lfindcell cannot be symmetric wrt the current zero width character handling.
+	# (expectation of the naive grapheme breaker is that combining characters follow base)
+
+	findmethod = phrase.rfindcell
+	cells = phrase.cellcount()
+	wordcount = len(phrase)
+
+	test/findmethod(0) == (-1, 0, 0)
+	test/findmethod(1) == (-1, 1, 1)
+	test/findmethod(0, start=(-1,1,1)) == (-1, 1, 1)
+	test/findmethod(1, start=(-1,1,1)) == (-1, 2, 2)
+	test/findmethod(2, start=(-1,2,2)) == (-1, 4, 4)
+
+	# Next words.
+	test/findmethod(0, start=(-1,8,8)) == (-2, 0, 8)
+	test/findmethod(1, start=(-1,8,8)) == (-3, 0, 9)
+	test/findmethod(2, start=(-1,8,8)) == (-4, 0, 10)
+	test/findmethod(1, start=(-3,0,9)) == (-4, 0, 10)
+
+	edge = findmethod(cells)
+	test/edge == (-len(phrase), len(phrase[0][1]), cells)
+	test/findmethod(0, start=edge) == edge
+	test/findmethod(1, start=(edge[0], edge[1]-1, edge[2]-1)) == edge
+
+	test/findmethod(1, start=edge) == None # Beyond edge.
+
+def test_Phrase_rfindcell(test):
+	"""
+	# - &library.Phrase.rfindcell
+	"""
+	library.text.setlocale()
+	t_rfindcell_1(test, findcell_phrase_1)
+	t_rfindcell_1(test, findcell_phrase_1_cc)
+	t_rfindcell_1(test, findcell_phrase_1_units)
 
 def test_Phrase_lstripcells_singular(test):
 	"""
@@ -306,8 +415,6 @@ def test_Phrase_lstripcells_boundary(test):
 	"""
 	# - &library.Phrase.lstripcells
 	# - &library.Phrase.lfindcell
-
-	# Failure is likely due to a malfunctioning &wcswidth implementation.
 	"""
 
 	seq = [("謝了春",), ("check",)]
@@ -326,13 +433,11 @@ def test_Phrase_rstripcells_boundary(test):
 	"""
 	# - &library.Phrase.rstripcells
 	# - &library.Phrase.rfindcell
-
-	# Failure is likely due to a malfunctioning &wcswidth implementation.
 	"""
 
 	seq = [("謝了春",), ("check",)]
 	ph = library.Phrase.construct(seq)
-	test/ph.rstripcells(5)[1][1] == ""
+	test/IndexError ^ (lambda: ph.rstripcells(5)[1][1] == "")
 	test/ph.rstripcells(5)[0][1] == "謝了春"
 	test/ph.rstripcells(6)[0][1] == "謝了*"
 	test/ph.rstripcells(7)[0][1] == "謝了"
@@ -340,16 +445,14 @@ def test_Phrase_rstripcells_boundary(test):
 
 	iseq = [("check",), ("謝了春",)]
 	ph = library.Phrase.construct(iseq)
-	test/ph.rstripcells(6)[1][1] == ""
-	test/ph.rstripcells(5)[1][1] == "*"
-	test/ph.rstripcells(4)[1][1] == "謝"
+	test/IndexError ^ (lambda: ph.rstripcells(6)[1][1] == "")
+	test/ph.rstripcells(4)[-1][1] == "謝"
+	test/ph.rstripcells(5)[-1][1] == "*"
 
 def test_Phrase_lstripcells_zerowidth(test):
 	"""
 	# - &library.Phrase.lstripcells
 	# - &library.Phrase.lfindcell
-
-	# Failure is likely due to a malfunctioning &wcswidth implementation.
 	"""
 
 	# Zero width space might be greater than zero cells.
