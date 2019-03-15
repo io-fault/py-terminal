@@ -790,6 +790,22 @@ class Phrase(tuple):
 		return Class.default(" ")
 
 	@classmethod
+	def from_words(Class, *words:Words, ichain=itertools.chain.from_iterable) -> 'Phrase':
+		return Class(ichain(words))
+
+	def join(self, phrases, zip=zip, repeat=itertools.repeat, ichain=itertools.chain.from_iterable):
+		"""
+		# Create a new Phrase from &phrases by placing &self between each &Phrase instance
+		# in &phrases.
+		"""
+		if not phrases:
+			return self.__class__(())
+
+		i = ichain(ichain(zip(repeat(self, len(phrases)), phrases)))
+		next(i)
+		return self.__class__((i))
+
+	@classmethod
 	def construct(Class,
 			specifications:typing.Sequence[object],
 			RenderParametersConstructor=RenderParameters,
@@ -834,9 +850,9 @@ class Phrase(tuple):
 		"""
 		return sum(x[0] for x in self)
 
-	def stringlength(self):
+	def unitcount(self):
 		"""
-		# Sum of the lengths of the text strings in the phrase.
+		# Number of character units contained by the phrase.
 		"""
 		return sum(len(x[1]) for x in self)
 
@@ -906,7 +922,7 @@ class Phrase(tuple):
 		# `assert phrase == Phrase(Phrase(phrase.reverse()).reverse())`
 		"""
 		return (
-			(x[0], "".join(reversed(x[1])),) + x[2:]
+			(x[0], x[1].__class__(reversed(x[1])),) + x[2:]
 			for x in reversed(self)
 		)
 
@@ -919,8 +935,7 @@ class Phrase(tuple):
 
 	def select(self, start, stop, adjust=(lambda x: x), cells=text.cells):
 		"""
-		# Extract the subphrase at the given indexes with the given modifications
-		# applied. The modifications are intentionally
+		# Extract the subphrase at the given indexes.
 
 		# [ Parameters ]
 		# /adjust/
@@ -1092,7 +1107,7 @@ class Phrase(tuple):
 		# to the start of the phrase.
 		"""
 
-		if cellcount == 0:
+		if cellcount <= 0:
 			# Zero offset, no trim.
 			return self
 
@@ -1126,7 +1141,7 @@ class Phrase(tuple):
 		# to the end of the phrase.
 		"""
 
-		if cellcount == 0:
+		if cellcount <= 0:
 			# Zero offset, no trim.
 			return self
 

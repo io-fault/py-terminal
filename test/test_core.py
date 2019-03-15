@@ -2,8 +2,14 @@
 # Tests for &.core.
 """
 from .. import core as library
+notraits = library.NoTraits
 
 def test_Point(test):
+	"""
+	# - &library.Point
+	"""
+
+	# Sanity
 	p0 = library.Point((0,0))
 	p1 = library.Point((1,1))
 	p2 = library.Point((2,2))
@@ -147,17 +153,6 @@ def test_RenderParameters(test):
 	test/rp.update(cellcolor=1) == (0, 1, 0)
 	test/rp.update(textcolor=1) == (1, 0, 0)
 
-def test_RenderParameters_from_default(test):
-	"""
-	# - &library.RenderParameters.from_default
-	"""
-
-	# Sanity
-	rp = library.RenderParameters.from_default()
-	test/rp.textcolor == -1024
-	test/rp.cellcolor == -1024
-	test/list(rp.traits) == []
-
 def test_RenderParameters_traits(test):
 	"""
 	# - &library.RenderParameters.clear
@@ -165,7 +160,7 @@ def test_RenderParameters_traits(test):
 	"""
 
 	# Sanity
-	rp = library.RenderParameters.from_default()
+	rp = library.RenderParameters((0, 0, library.Traits(0)))
 	ul = library.Traits.construct('underline')
 	dul = library.Traits.construct('double-underline')
 
@@ -175,6 +170,18 @@ def test_RenderParameters_traits(test):
 
 	rp = rp.set(dul)
 	test/list(rp.clear(ul).traits) == ['double-underline']
+
+def test_RenderParameters_equality(test):
+	"""
+	# - &library.RenderParameters
+	"""
+	rp = library.RenderParameters((0, 0, library.Traits(0)))
+	rp1 = library.RenderParameters((0, 0, library.Traits(1)))
+	rp2 = library.RenderParameters((0, 1, library.Traits(0)))
+
+	test/rp == rp
+	test/rp != rp1
+	test/rp != rp2
 
 def test_Units(test):
 	"""
@@ -247,7 +254,7 @@ def test_Phrase_properties(test):
 	test/ph == ((5, "field", (None, None, 0)),)
 	test/len(ph) == 1
 	test/ph.cellcount() == 5
-	test/ph.stringlength() == 5
+	test/ph.unitcount() == 5
 
 def test_Phrase_rstripcells_singular(test):
 	"""
@@ -282,7 +289,6 @@ def test_Phrase_rstripcells_singular(test):
 	result = pair.rstripcells(6)
 	test/result == ((5, "first", (None, None, 0)),)
 
-notraits = library.Traits.none()
 findcell_phrase_1 = library.Phrase.construct([
 	("field", None, None, notraits),
 	(" ", None, None, notraits),
@@ -543,6 +549,26 @@ def test_Phrase_rstripcells_zerowidth(test):
 	test/ph.rstripcells(n+1, substitute=sub)[0][1] == "謝了*"
 	test/noted == ["春\u0353"]
 
+def test_Phrase_lstripcells_noop(test):
+	ph = library.Phrase.construct([
+		("Simple", None, None, notraits),
+		(" ", None, None, notraits),
+		("Phrase.", None, None, notraits),
+	])
+	test/ph.lstripcells(0) == ph
+	test/ph.lstripcells(-1) == ph
+	test/ph.lstripcells(-128) == ph
+
+def test_Phrase_rstripcells_noop(test):
+	ph = library.Phrase.construct([
+		("Simple", None, None, notraits),
+		(" ", None, None, notraits),
+		("Phrase.", None, None, notraits),
+	])
+	test/ph.rstripcells(0) == ph
+	test/ph.rstripcells(-1) == ph
+	test/ph.rstripcells(-128) == ph
+
 def test_Phrase_translate_ascii(test):
 	"""
 	# - &library.Phrase.translate
@@ -620,6 +646,65 @@ def test_Phrase_subphrase(test):
 	test/list(ph.subphrase(*ph.findcells(0, 3))) == [ph[0]]
 	fun = (3, "fun", (None, None, 0))
 	test/list(ph.subphrase(*ph.findcells(0, 7))) == [ph[0], ph[1], fun]
+
+def test_Phrase_join(test):
+	"""
+	# - &library.Phrase.join
+	"""
+	normal = library.RenderParameters((0xFFFFFF, 0x000000, library.Traits(0)))
+	tab = library.Phrase(normal.form("<TAB>"))
+
+	# Three elements.
+	r = tab.join([
+		normal.form("first"),
+		normal.form("middle"),
+		normal.form("last"),
+	])
+	test/''.join([x[1] for x in r]) == "first<TAB>middle<TAB>last"
+	test/r[0][2] == normal
+	test/r[1] == tab[0]
+	test/r[2][2] == normal
+	test/r[3] == tab[0]
+	test/r[4][2] == normal
+
+	# Two elements.
+	r = tab.join([
+		normal.form("first"),
+		normal.form("last"),
+	])
+	test/''.join([x[1] for x in r]) == "first<TAB>last"
+
+	# Single element case.
+	r = tab.join([
+		normal.form("first"),
+	])
+	test/''.join([x[1] for x in r]) == "first"
+
+	# Zero element case.
+	r = tab.join([])
+	test/''.join([x[1] for x in r]) == ""
+
+def test_Constructors(test):
+	"""
+	# - &library.RenderParameters.form
+	# - &library.Phrase.from_words
+	"""
+	rp1 = library.RenderParameters((0xFFFFFF, 0x000000, library.Traits(0)))
+	rp2 = library.RenderParameters((-1024, 0x000000, library.Traits(0)))
+	test/len(list(rp1.form("first", "second"))) == 2
+
+	ph = library.Phrase.from_words(
+		rp1.form("Former", " ", "sentence", ". "),
+		rp2.form("Latter sentence", "."),
+	)
+	test/"".join([x[1] for x in ph]) == "Former sentence. Latter sentence."
+
+	# Check units usage.
+	ph = library.Phrase.from_words(
+		rp1.form("Former", " ", "sentence", library.Units(("->",))),
+		rp2.form("Latter sentence", library.Units((";",))),
+	)
+	test/"".join([str(x[1]) for x in ph]) == "Former sentence->Latter sentence;"
 
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
