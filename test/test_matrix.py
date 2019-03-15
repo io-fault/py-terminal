@@ -1,3 +1,7 @@
+"""
+# Most of the tests here are sanity tests primarily checking to make sure exceptions aren't
+# raised from good parameters.
+"""
 from .. import core
 from .. import matrix as library
 
@@ -91,6 +95,42 @@ def test_Context_stored_colors(test):
 	])
 	rph = list(s.render(ph))
 	test/rph == [b'', b'Simple', b'', b' ', b'', b'phrase.']
+
+def test_Screen_methods(test):
+	"""
+	# - &library.Screen
+
+	# Check sanity of the additional screen methods.
+	"""
+	S = library.Screen('utf-8') # Explicitly utf-8.
+
+	b"-test-title" in test/S.set_window_title_text("-test-title")
+	b'!p' in test/S.reset()
+	b'2J' in test/S.clear()
+
+	sr = S.set_scrolling_region(0,1)
+	b'1' in test/sr
+	b'2' in test/sr
+
+	b'7' in test/S.store_cursor_location()
+	b'8' in test/S.restore_cursor_location()
+	b'8' in test/S.scroll_up(8)
+	b'8' in test/S.scroll_down(8)
+
+def test_Context_seek(test):
+	"""
+	# - &library.Context.seek
+	# - &library.Context.tell
+	# - &library.Context.seek_last
+	"""
+	tctx = library.Context('utf-8')
+	tctx.context_set_position((32,32))
+	tctx.context_set_dimensions((16, 16))
+
+	b'33' in test/tctx.seek((0,0))
+	test/tctx.tell() == (0,0)
+	b'48' in test/tctx.seek_last()
+	test/tctx.tell() == (15, 15)
 
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
