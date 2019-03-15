@@ -46,12 +46,30 @@ class Context(object):
 	"""
 	# Rendering Context for character matrices.
 
-	# Initialized with the encoding that text should be encoded with.
+	# Initialized with the encoding that text should be encoded with; defaults to `'utf-8'`.
 
 	# Methods beginning with (id)`context_` are Context configuration interfaces
-	# returning the instance for method chaining.
+	# returning the instance for method chaining. After creating a &Context instance,
+	# some of them may need to be called for proper usage:
+
+		# - &context_set_position
+		# - &context_set_dimensions
+		# - &context_set_text_color
+		# - &context_set_cell_color
 	"""
-	point = (None, None)
+
+	# Provide context instance relative access for allowing overloading and convenience.
+	# The types may be overridden globally by patching &.core prior to importing &.matrix.
+	from .core import \
+		Text, \
+		Units, \
+		Phrase, \
+		Traits, \
+		RenderParameters, \
+		Words, \
+		Page
+
+	default_render_parameters = RenderParameters((-1024, -1024, core.NoTraits))
 
 	control_mapping = {chr(i): chr(0x2400 + i) for i in range(32)}
 	control_table = str.maketrans(control_mapping)
@@ -60,7 +78,7 @@ class Context(object):
 	_join = b';'.join
 	_csi_init = b'\x1b['
 	_osc_init = b'\x1b]'
-	_osc_terminate = b'\x07'
+	_st = b'\x1b\\' # String Terminator
 	_reset_text_attributes = b'0'
 
 	# Support for SGR color.
@@ -104,9 +122,10 @@ class Context(object):
 	def translate(spoint, point):
 		return (point[0] + spoint[0], point[1] + spoint[1])
 
+	point = (None, None)
+	dimensions = (None, None)
+	width = height = None
 	def __init__(self, encoding='utf-8'):
-		self.dimensions = (None, None)
-		self.width = self.height = None
 		self._context_text_color = -1024
 		self._context_cell_color = -1024
 		self._context_cursor = (0, 0)
@@ -115,20 +134,11 @@ class Context(object):
 		self.encoding, self._encoder, self._encode, self._cached_encode = codec
 		self.encode = codec[-1]
 
-	def adjust(self, position, dimensions):
-		"""
-		# Adjust the position and dimensions of the rendering context.
-		"""
-		self.point = position
-		self.dimensions = dimensions
-		# track relative position for seek operations
-		self.width, self.height = dimensions
-
 	@property
 	def _context_traits(self):
 		return (self._context_text_color, self._context_cell_color, 0)
 
-	def context_set_position(self, point:typing.Tuple[int, int]):
+	def context_set_position(self, point:typing.Tuple[int, int]) -> 'Context':
 		"""
 		# Designate the absolute positioning of the character matrix.
 		# Appropriate interface to use to set &self.point.
@@ -136,7 +146,7 @@ class Context(object):
 		self.point = point
 		return self
 
-	def context_set_dimensions(self, dimensions):
+	def context_set_dimensions(self, dimensions) -> 'Context':
 		"""
 		# Designate the width and height of the character matrix being targeted.
 		# Initializes &Context.dimensions, &width, and &height.
@@ -145,7 +155,7 @@ class Context(object):
 		self.dimensions = dimensions
 		return self
 
-	def context_set_text_color(self, color_id):
+	def context_set_text_color(self, color_id) -> 'Context':
 		"""
 		# Configure the default text color.
 		# Used by &reset_text and &reset_text_color.
@@ -153,7 +163,7 @@ class Context(object):
 		self._context_text_color = color_id
 		return self
 
-	def context_set_cell_color(self, color_id):
+	def context_set_cell_color(self, color_id) -> 'Context':
 		"""
 		# Configure the default cell color.
 		# used by &reset_text and &reset_cell_color.
@@ -253,6 +263,9 @@ class Context(object):
 		"""
 		return self._csi(b'm', *self._color_selector(True, color))
 
+	def set_render_parameters(self, rp:RenderParameters) -> bytes:
+		return b''.join(self.transition((None, None, None), rp))
+
 	def reset_text_color(self) -> bytes:
 		"""
 		# Use the text color configured with &context_set_text_color.
@@ -289,7 +302,7 @@ class Context(object):
 			leading:RenderParameters,
 			following:RenderParameters,
 			style_codes=_style_codes,
-		) -> typing.Iterator[bytes]:
+		) -> typing.Iterable[bytes]:
 		"""
 		# Construct escape sequences necessary to transition the SGR state from
 		# &leading to &following.
@@ -338,7 +351,7 @@ class Context(object):
 
 		return self._encode(phraseword.translate(control_map))
 
-	def render(self, phrase, rparams:RenderParameters=None) -> typing.Iterator[bytes]:
+	def render(self, phrase:typing.Iterable[Words], rparams:RenderParameters=None) -> typing.Iterable[bytes]:
 		"""
 		# Render the given &phrase for display on the terminal.
 		# Unlike most Context methods, &render returns an iterator
@@ -368,66 +381,82 @@ class Context(object):
 			last = rparams
 
 		for words in phrase:
-			to = words[2]
+			# Don't bother catenating the strings; allows for style stripping.
+			w, to = words[1:3]
 			yield _csi(b'm', *transition(last, to))
 			last = to
-
-			yield e(words[1])
+			yield e(w)
 
 	def print(self,
 			phrases:Page,
 			cellcounts:typing.Sequence[int],
-			dirtycells:typing.Sequence[int]=(),
+			indentations:typing.Sequence[int]=itertools.repeat(0),
+			width=None,
 			zip=zip
-		) -> typing.Iterator[bytes]:
+		) -> typing.Iterable[bytes]:
 		"""
 		# Print the page of phrases using &render.
 
-		# Unlike most Context methods, &print returns an iterator
-		# producing the sequences necessary to represent the phrase.
-
-		# Text properties will be unconditionally reset, and lines will
+		# Text Properties will be unconditionally reset, and lines will
 		# be presumed dirty causing a following erase to be emitted after
 		# the phrase is rendered.
+
+		# &print, conceptually, expects the cursor to be at the desired starting location and
+		# that the number of &phrases not exceed the &height of the context.
 		"""
 
 		rst = self.reset_text()
 		nl = self.seek_next_line
 		erase = self.erase
 		render = self.render
-		w = self.width
+		indent = self.spaces
+
+		width = width or self.width
+		adjustment = 0
+		assert width is not None and width >= 0 #:Rendering Context misconfigured or bad &width parameter.
 
 		yield rst
 
-		for x, cc in zip(phrases, cellcounts):
-			if cc > w:
-				yield from render(x.rstripcells(cc - w))
+		for x, cc, ic in zip(phrases, cellcounts, indentations):
+			if ic:
+				# Don't bother with sequence alignment for print.
+				# Skip the yield if there's nothing to yield.
+				yield indent(ic)
+				cc += ic
+
+			adjustment = width - cc
+			if adjustment < 0:
+				# Cells exceeds width.
+				yield b''.join(render(x.rstripcells(-adjustment)))
 				yield rst + nl()
 			else:
-				yield from render(x)
-				yield rst + erase(w - cc) + nl()
+				# Width exceeds cells.
+				yield b''.join(render(x))
+				yield rst + erase(adjustment) + nl()
 
-	def blank(self, count=1):
+	def spaces(self, count):
 		"""
-		# Generate sequence for writing blank characters.
-		# Semantically, this should be equivalent to writing spaces.
+		# Construct a sequence or characters necessary for writing &count spaces.
 		"""
-		return self._csi(self.encode(count) + b'@')
+		if count == 0:
+			return b''
+
+		return b' ' + self._csi(b'b', self.encode(count-1))
 
 	def clear_line(self, lineno):
 		return self.seek_line(lineno) + self.clear_current_line()
 
-	def clear_to_line(self, n = 1):
-		return self._csi(self.encode(n) + b'J')
+	def clear_to_line(self, lineno=1):
+		return self._csi(self.encode(lineno) + b'J')
 
 	def clear_to_bottom(self):
 		return self._csi(b'J')
 
 	def clear_before_cursor(self):
-		return self._csi_sequence + b'\x31\x4b'
+		return self._csi(b'K', 1)
 
 	def clear_after_cursor(self):
-		return self._csi_sequence + b'\x4b'
+		return self._csi(b'K')
 
 	def clear_current_line(self):
 		return self.clear_before_cursor() + self.clear_after_cursor()
@@ -493,17 +522,6 @@ class Context(object):
 		buf = self.seek_start_of_line()
 		buf += self.seek_horizontal_relative(start)
 		buf += self.deflate_horizontal(stop)
-		return buf
-
-	def overwrite(self, offset_styles):
-		"""
-		# Given a sequence of (relative_offset, style(text)), return
-		# the necessary sequences to *overwrite* the characters at the offset.
-		"""
-		buf = bytearray()
-		for offset, styles in offset_styles:
-			buf += self.seek_horizontal_relative(offset)
-			buf += self.style(styles)
 		return buf
 
 	def clear(self):
@@ -644,8 +662,8 @@ class Screen(Context):
 		# Instruct the emulator to use the given title for the window.
 		# The given &title should be plain text and control characters will be translated.
 		"""
-		etitle = self._encoder(title.translate(self.control_table))
-		return self._csi_character + b']2;' + etitle + b'\x07'
+		etitle = self._encoder(title.translate(self.control_table))[0]
+		return self._osc_init + b'2;' + etitle + self._st
 
 	def reset(self):
 		"""
@@ -657,7 +675,7 @@ class Screen(Context):
 		"""
 		# Confine the scrolling area to the given rows.
 		"""
-		return self._csi(b'r', top+1, bottom+1)
+		return self._csi(b'r', self.encode(top+1), self.encode(bottom+1))
 
 	def reset_scrolling_region(self):
 		"""
@@ -681,26 +699,13 @@ class Screen(Context):
 		"""
 		# Adjust the scroll region's view by scrolling up &count rows.
 		"""
-		return self._csi(b'S', count)
+		return self._csi(b'S', self.encode(count))
 
 	def scroll_down(self, count):
 		"""
 		# Adjust the scroll region's view by scrolling down &count rows.
 		"""
-		return self._csi(b'T', rows)
-
-	def adjust(self, point, dimensions):
-		"""
-		# Set the screen's configured dimensions.
-
-		# This method should be called upon receiving SIGWINCH and after
-		# creating an instance. However, it is not mandatory for many operations
-		# to know the screen size.
-		"""
-		if point != (0, 0):
-			raise ValueError("screen contexts must be positioned at zero")
-
-		return super().adjust(point, dimensions)
+		return self._csi(b'T', self.encode(count))
 
 	def clear(self):
 		return self.reset_text() + self._csi(b'H') + self._csi(b'2J')

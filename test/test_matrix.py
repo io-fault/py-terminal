@@ -132,6 +132,17 @@ def test_Context_seek(test):
 	b'48' in test/tctx.seek_last()
 	test/tctx.tell() == (15, 15)
 
+def test_Context_properties(test):
+	"""
+	# - &library.Context
+	"""
+	ctx = library.Context()
+	drp = ctx.default_render_parameters
+	test/drp == library.Context.default_render_parameters
+	test/ctx.width == None
+	test/ctx.height == None
+	test/ctx.point == (None, None)
+
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
 	libtest.execute(sys.modules[__name__])

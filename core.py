@@ -4,11 +4,15 @@
 # [ Types ]
 # /&Page/
 	# &Phrase sequence.
+# /&Text/
+	# Alias to the builtin &str.
 """
 import typing
 import functools
 import itertools
 from ..system import text
+
+Text = str
 
 class Point(tuple):
 	"""
@@ -535,7 +539,7 @@ class Vector(object):
 
 class Traits(int):
 	"""
-	# Word attributes used to describe a part of a &Phrase.
+	# Word attribute bitmap used to describe a part of a &Phrase.
 
 	# The bitmap of attributes allows for conflicting decorations;
 	# &.terminal makes no presumptions about how the terminal responds to
@@ -567,6 +571,8 @@ class Traits(int):
 			'overline',
 			'frame',
 			'encircle',
+
+			'sentinal',
 		)
 	)
 	del _build
@@ -581,10 +587,6 @@ class Traits(int):
 	@classmethod
 	def all(Class):
 		return Class((1 << len(Class.fields)) - 1)
-
-	@classmethod
-	def none(Class):
-		return Class(0)
 
 	@classmethod
 	def construct(Class, *style):
@@ -611,13 +613,15 @@ class Traits(int):
 			return '<' + '|'.join(self) + '>'
 		return '<notraits>'
 
+NoTraits = Traits(0)
+
 class RenderParameters(tuple):
 	"""
 	# Rendering context parameters to use for displaying text on a Terminal.
+	# Instances hold the text and cell colors and the &Traits.
 	"""
 	__slots__ = ()
 
-	_tt_none = Traits.none()
 	_cc_none = -1024
 	_tc_none = -1024
 
@@ -643,31 +647,12 @@ class RenderParameters(tuple):
 		return self[2]
 
 	@classmethod
-	def from_default(Class):
-		"""
-		# Construct an instance using the default text and cell colors with no traits.
-		"""
-		return Class((Class._tc_none, Class._cc_none, Class._tt_none))
-
-	@classmethod
-	def from_colors(Class, textcolor, cellcolor):
-		return Class((textcolor, cellcolor, Traits(0)))
-
-	@classmethod
-	def from_named_fields(Class, textcolor, cellcolor, *traits) -> 'RenderParameters':
-		"""
-		"""
-		if textcolor is None:
-			tc = Class._tc_none
-		if cellcolor is None:
-			cc = Class._cc_none
-
-		tt = Traits.construct(*traits)
-		return Class((tc, cc, tt))
+	def from_colors(Class, textcolor, cellcolor) -> 'RenderParameters':
+		return Class((textcolor, cellcolor, NoTraits))
 
 	def set(self, traits) -> 'RenderParameters':
 		"""
-		# Create a new instance with the given &traits applied
+		# Create a new instance with the given &traits added to
 		# the traits present in &self.
 		"""
 		return self.__class__((
@@ -675,22 +660,28 @@ class RenderParameters(tuple):
 		))
 
 	def clear(self, traits) -> 'RenderParameters':
+		"""
+		# Create a new instance with the given &traits removed
+		# from the traits present in &self.
+		"""
 		c = self[2]
 		return self.__class__((
 			self[0], self[1], ((c & traits) ^ c)
 		))
 
 	def update(self, textcolor=None, cellcolor=None, traits=None):
-		if traits is None:
-			t = self[2]
-		else:
-			t = self[2] | traits
-
 		return self.__class__((
 			textcolor if textcolor is not None else self[0],
 			cellcolor if cellcolor is not None else self[1],
-			t,
+			traits if traits is not None else self[2],
 		))
+
+	def form(self, *strings, cells=text.cells):
+		"""
+		# Construct words suitable for use by &Phrase associated with the parameters, &self.
+		"""
+		for text in strings:
+			yield (cells(text), text, self)
 
 class Units(tuple):
 	"""
@@ -765,6 +756,8 @@ def itergraphemes(text, getslice=grapheme, len=len):
 		s = getslice(text, i)
 		yield s
 		i = s.stop
+
+Words = typing.Tuple[int, Text, RenderParameters]
 
 class Phrase(tuple):
 	"""
