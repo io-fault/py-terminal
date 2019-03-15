@@ -153,6 +153,19 @@ def test_RenderParameters(test):
 	test/rp.update(cellcolor=1) == (0, 1, 0)
 	test/rp.update(textcolor=1) == (1, 0, 0)
 
+def test_RenderParameters_apply(test):
+	"""
+	# - &library.RenderParamters.apply
+	"""
+	t = library.NoTraits
+	r = library.RenderParameters((None, None, t))
+	test/r.apply('underline').traits.test('underline') == True
+	test/r.apply('underline', 'bold').traits.test('underline') == True
+	test/r.apply('underline', 'bold').traits.test('bold') == True
+
+	test/r.apply('bold').textcolor == None
+	test/r.apply('bold', textcolor=1).textcolor == 1
+
 def test_RenderParameters_traits(test):
 	"""
 	# - &library.RenderParameters.clear
@@ -324,7 +337,7 @@ def t_lfindcell_1(test, phrase):
 
 	test/findmethod(0) == (0, 0, 0)
 	test/findmethod(1) == (0, 1, 1)
-	test/findmethod(0, start=(0, 1, 1)) == (0, 1, 1)
+	test/findmethod(0, start=(0,1,1)) == (0, 1, 1)
 	test/findmethod(1, start=(0,1,1)) == (0, 2, 2)
 	test/findmethod(2, start=(0,2,2)) == (0, 4, 4)
 

@@ -39,14 +39,13 @@ class Point(tuple):
 
 	def __sub__(self, point, op=int.__sub__):
 		"""
-		# Abstract the point from another.
+		# Subtract the point from another.
 		"""
 		return self.__class__((op(self[0], point[0]), op(self[1], point[1])))
 
 	@classmethod
-	def create(Class, *points):
+	def construct(Class, *points):
 		return Class(points)
-	construct = create
 
 class Modifiers(int):
 	"""
@@ -589,8 +588,8 @@ class Traits(int):
 		return Class((1 << len(Class.fields)) - 1)
 
 	@classmethod
-	def construct(Class, *style):
-		i = 0
+	def construct(Class, *style, From=0):
+		i = From
 		for x in style:
 			i = i | (1 << Class.field_index[x])
 
@@ -646,27 +645,43 @@ class RenderParameters(tuple):
 		"""
 		return self[2]
 
+	@property
+	def font(self) -> None:
+		"""
+		# Configured font.
+		# Currently, always &None and ignored by Contexts and Types.
+		"""
+		return None
+
 	@classmethod
 	def from_colors(Class, textcolor, cellcolor) -> 'RenderParameters':
 		return Class((textcolor, cellcolor, NoTraits))
 
-	def set(self, traits) -> 'RenderParameters':
+	def set(self, traits:Traits) -> 'RenderParameters':
 		"""
 		# Create a new instance with the given &traits added to
 		# the traits present in &self.
 		"""
 		return self.__class__((
-			self[0], self[1], traits | self[2]
+			self[0], self[1], traits | self[2], *self[3:]
 		))
 
-	def clear(self, traits) -> 'RenderParameters':
+	def clear(self, traits:Traits) -> 'RenderParameters':
 		"""
 		# Create a new instance with the given &traits removed
 		# from the traits present in &self.
 		"""
 		c = self[2]
 		return self.__class__((
-			self[0], self[1], ((c & traits) ^ c)
+			self[0], self[1], ((c & traits) ^ c), *self[3:]
+		))
+
+	def apply(self, *traits, textcolor=None, cellcolor=None):
+		return self.__class__((
+			textcolor if textcolor is not None else self[0],
+			cellcolor if cellcolor is not None else self[1],
+			self[2].construct(*traits, From=int(self[2])),
+			*self[3:]
 		))
 
 	def update(self, textcolor=None, cellcolor=None, traits=None):
