@@ -14,27 +14,27 @@ def test_Context_transition(test):
 
 	leading = (0, 0, 0)
 	following = (1, 0, zero)
-	test/list(s.transition(leading, following)) == [b'38;2', b'0;0;1']
+	test/list(s._transition(leading, following)) == [b'38;2', b'0;0;1']
 
 	# No transition.
 	leading = (1, 0, 0)
 	following = (1, 0, zero)
-	test/list(s.transition(leading, following)) == []
+	test/list(s._transition(leading, following)) == []
 
 	# elimation (underline)
 	leading = (1, 0, core.Traits.construct('underline'))
 	following = (1, 0, zero)
-	test/list(s.transition(leading, following)) == [b'24']
+	test/list(s._transition(leading, following)) == [b'24']
 
 	# transition in (underline)
 	leading = (1, 0, zero)
 	following = (1, 0, core.Traits.construct('underline'))
-	test/list(s.transition(leading, following)) == [b'4']
+	test/list(s._transition(leading, following)) == [b'4']
 
 	# transition in underline from double
 	leading = (1, 0, core.Traits.construct('double-underline'))
 	following = (1, 0, core.Traits.construct('underline'))
-	test/list(s.transition(leading, following)) == [b'24', b'4']
+	test/list(s._transition(leading, following)) == [b'24', b'4']
 
 def test_Context_render_transitions(test):
 	"""
@@ -138,6 +138,7 @@ def test_Context_properties(test):
 	"""
 	ctx = library.Context()
 	drp = ctx.default_render_parameters
+
 	test/drp == library.Context.default_render_parameters
 	test/ctx.width == None
 	test/ctx.height == None

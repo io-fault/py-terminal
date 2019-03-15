@@ -129,10 +129,14 @@ class Context(object):
 		self._context_text_color = -1024
 		self._context_cell_color = -1024
 		self._context_cursor = (0, 0)
+		self._terminal_type_key = hash((encoding, self._csi_init, self._osc_init))
 
 		codec = encoders(encoding)
 		self.encoding, self._encoder, self._encode, self._cached_encode = codec
 		self.encode = codec[-1]
+
+	def __hash__(self):
+		return self._terminal_type_key
 
 	@property
 	def _context_traits(self):
@@ -298,7 +302,7 @@ class Context(object):
 			self._color_selector(False, self._context_cell_color)
 		))
 
-	def transition(self,
+	def _transition(self,
 			leading:RenderParameters,
 			following:RenderParameters,
 			style_codes=_style_codes,
@@ -343,6 +347,10 @@ class Context(object):
 			for x in newtraits:
 				yield style_codes[x][0]
 
+	@functools.lru_cache(32)
+	def transition(self, leading:RenderParameters, following:RenderParameters) -> bytes:
+		return self._csi_filter_empty(b'm', *self._transition(leading, following))
+
 	def draw_words(self, phraseword, control_map=control_table):
 		"""
 		# Translate the given &phraseword with &control_map and encode it
@@ -370,7 +378,6 @@ class Context(object):
 			# provided to the next render call to make minimal transitions.
 		"""
 
-		_csi = self._csi_filter_empty
 		encoding = self.encoding
 		e = self.encode
 		transition = self.transition
@@ -383,7 +390,7 @@ class Context(object):
 		for words in phrase:
 			# Don't bother catenating the strings; allows for style stripping.
 			w, to = words[1:3]
-			yield _csi(b'm', *transition(last, to))
+			yield transition(last, to)
 			last = to
 			yield e(w)
 
