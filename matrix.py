@@ -129,11 +129,13 @@ class Context(object):
 		self._context_text_color = -1024
 		self._context_cell_color = -1024
 		self._context_cursor = (0, 0)
-		self._terminal_type_key = hash((encoding, self._csi_init, self._osc_init))
 
 		codec = encoders(encoding)
 		self.encoding, self._encoder, self._encode, self._cached_encode = codec
 		self.encode = codec[-1]
+
+		# This is a hack that needs to go away.
+		self._terminal_type_key = hash((encoding, self._csi_init, self._osc_init))
 
 	def __hash__(self):
 		return self._terminal_type_key
