@@ -609,8 +609,12 @@ class Traits(int):
 
 	def __str__(self):
 		if self:
-			return '<' + '|'.join(self) + '>'
-		return '<notraits>'
+			return "<" + "|".join(self) + ">"
+		return "<notraits>"
+
+	@staticmethod
+	def none() -> 'Traits':
+		return NoTraits
 
 NoTraits = Traits(0)
 

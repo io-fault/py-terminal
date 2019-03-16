@@ -100,6 +100,7 @@ def test_Traits(test):
 	Traits = library.Traits
 	test/Traits.construct('underline').test('underline') == True
 	test/Traits.construct('underline').test('double-underline') == False
+	test/Traits.none() == library.NoTraits
 
 def test_Traits_unique(test):
 	"""
