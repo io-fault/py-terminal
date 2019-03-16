@@ -130,5 +130,5 @@ if __name__ == '__main__':
 	now = t.now()
 	for x in values:
 		ts = t.Timestamp.of(iso=x)
-		ph = matrix.Phrase.construct(x+(None,None) for x in f_timestamp(now, ts))
+		ph = screen.Phrase.construct(x+(None,None) for x in f_timestamp(now, ts))
 		sys.stderr.buffer.write(b''.join(screen.render(ph)) + b'\n')

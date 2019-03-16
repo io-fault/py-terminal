@@ -139,8 +139,8 @@ if __name__ == '__main__':
 
 	for x in values:
 		r = l.File.from_path(x)
-		phrase = matrix.Phrase.construct([
-			(x[0], x[-1], None, matrix.Traits.construct(*x[1]))
+		phrase = screen.Phrase.construct([
+			(x[0], x[-1], None, screen.Traits.construct(*x[1]))
 			for x in f_route_absolute(r)
 		])
 		sys.stderr.buffer.write(b''.join(screen.render(phrase)) + b'\n')

@@ -52,5 +52,5 @@ if __name__ == '__main__':
 
 	for x in values:
 		sys.stderr.buffer.write(
-			b''.join(screen.render(matrix.Phrase.construct(f_string(x)))) + b'\n'
+			b''.join(screen.render(screen.Phrase.construct(f_string(x)))) + b'\n'
 		)
