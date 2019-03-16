@@ -21,6 +21,8 @@ class Type(object):
 	# committed to modern terminal emulators supporting commonly employed standards or practices.
 	"""
 
+	normal_render_parameters = core.RenderParameters((-1024, -1024, core.NoTraits))
+
 	_escape_character = b'\x1b'
 	_field_separator = b';'
 	_join = _field_separator.join
@@ -196,6 +198,7 @@ class Type(object):
 		):
 
 		self.encoding = encoding
+
 		ef = codecs.getencoder(encoding) # standard library codecs
 		self._encoder = ef
 
@@ -212,13 +215,13 @@ class Type(object):
 		umethod = self.__class__.transition_render_parameters
 		self.cached_transition = (functools.lru_cache(16)(umethod))
 
-default_terminal_type = Type('utf-8')
+utf8_terminal_type = Type('utf-8')
 
 class Context(object):
 	"""
 	# Rendering Context for character matrices.
 
-	# Initialized with the terminal &Type that designates how escape sequences should be serialized.
+	# Initialized using the terminal &Type that designates how escape sequences should be serialized.
 
 	# Methods beginning with (id)`context_` are Context configuration interfaces
 	# returning the instance for method chaining. After creating a &Context instance,
@@ -228,6 +231,25 @@ class Context(object):
 		# - &context_set_dimensions
 		# - &context_set_text_color
 		# - &context_set_cell_color
+
+	# Majority of methods return &bytes or iterables of &bytes that should be sent
+	# to the terminal to cause the desired effect.
+
+	# [ Properties ]
+	# /RenderParameters/
+		# Type containing data used to render &Text with the configured attributes.
+	# /Phrase/
+		# Sequence of &Words type. The primary interest of higher-level methods on &Context.
+		# Passed to &render and &print.
+	# /Words/
+		# Named type annotation describing the contents of a &Phrase.
+	# /Page/
+		# Named type annotation for a sequence of &Phrase.
+	# /Text/
+		# Alias to the builtin &str.
+	# /normal_render_parameters/
+		# A &RenderParameters instance containing the default text and cell color without
+		# any &Traits.
 	"""
 
 	# Provide context instance relative access for allowing overloading and convenience.
@@ -241,8 +263,6 @@ class Context(object):
 		Words, \
 		Page
 
-	default_render_parameters = core.RenderParameters((-1024, -1024, core.NoTraits))
-
 	control_mapping = {chr(i): chr(0x2400 + i) for i in range(32)}
 	control_table = str.maketrans(control_mapping)
 
@@ -254,7 +274,7 @@ class Context(object):
 	point = (None, None)
 	dimensions = (None, None)
 	width = height = None
-	def __init__(self, encoding='utf-8', type=default_terminal_type):
+	def __init__(self, type=utf8_terminal_type):
 		self.terminal_type = type
 
 		self._transition = functools.partial(type.cached_transition, type)
@@ -383,13 +403,13 @@ class Context(object):
 			self.terminal_type.select_color(False, self._context_cell_color)
 		))
 
-	def draw_words(self, phraseword, control_map=control_table):
+	def draw_words(self, phrasewordtext, control_map=control_table):
 		"""
 		# Translate the given &phraseword with &control_map and encode it
 		# with the Context's configured encoding.
 		"""
 
-		return self.terminal_type.encode(phraseword.translate(control_map))
+		return self.terminal_type.encode(phrasewordtext.translate(control_map))
 
 	def render(self, phrase:typing.Iterable[Words], rparams:RenderParameters=None) -> typing.Iterable[bytes]:
 		"""
@@ -439,8 +459,21 @@ class Context(object):
 		# be presumed dirty causing a following erase to be emitted after
 		# the phrase is rendered.
 
-		# &print, conceptually, expects the cursor to be at the desired starting location and
+		# &print, tentatively, expects the cursor to be at the desired starting location and
 		# that the number of &phrases not exceed the &height of the context.
+
+		# [ Parameters ]
+		# /phrases/
+			# The &Phrase instances that populate each line in the page.
+		# /cellcounts/
+			# The result of the corresponding &Phrase.cellcount method.
+			# Usually cached alongside &phrases.
+		# /indentation/
+			# An optional sequence of integers specifying the leading empty cells
+			# that should be used to indent the corresponding &Phrase.
+			# If &Phrase instances manage their own indentation, this should normally be ignored.
+		# /width/
+			# Optional width override. Defaults to &self.width.
 		"""
 
 		rst = self.reset_text()
@@ -475,6 +508,7 @@ class Context(object):
 	def spaces(self, count):
 		"""
 		# Construct a sequence or characters necessary for writing &count spaces.
+		# Uses REP.
 		"""
 		if count == 0:
 			return b''

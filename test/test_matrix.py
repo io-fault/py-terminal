@@ -112,7 +112,7 @@ def test_Screen_methods(test):
 
 	# Check sanity of the additional screen methods.
 	"""
-	S = library.Screen('utf-8') # Explicitly utf-8.
+	S = library.Screen() # Explicitly utf-8.
 
 	b"-test-title" in test/S.set_window_title_text("-test-title")
 	b'!p' in test/S.reset()
@@ -133,7 +133,7 @@ def test_Context_seek(test):
 	# - &library.Context.tell
 	# - &library.Context.seek_last
 	"""
-	tctx = library.Context('utf-8')
+	tctx = library.Context()
 	tctx.context_set_position((32,32))
 	tctx.context_set_dimensions((16, 16))
 
@@ -147,9 +147,8 @@ def test_Context_properties(test):
 	# - &library.Context
 	"""
 	ctx = library.Context()
-	drp = ctx.default_render_parameters
 
-	test/drp == library.Context.default_render_parameters
+	test.isinstance(ctx.terminal_type, library.Type)
 	test/ctx.width == None
 	test/ctx.height == None
 	test/ctx.point == (None, None)
