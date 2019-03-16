@@ -189,14 +189,12 @@ if __name__ == '__main__':
 
 	fg = '38;5;'
 	bg = '48;5;'
-
-	normal = escape(bg) + '0m'
-	fgnormal = escape(fg) + '16m'
+	normal = escape('0m')
 
 	args = sys.argv[1:]
 	if args:
 		color, text = args
-		normal = escape('0') + 'm'
+		normal = escape('0m')
 		sys.stderr.write(escape(fg) + color + 'm' + text + normal + ' eof\n')
 		print("color = lambda x: '\\x1b[38;5;{0}m' + x + {1}".format(color, repr(normal)))
 	else:
