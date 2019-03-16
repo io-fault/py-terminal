@@ -42,11 +42,213 @@ def encoders(encoding, errors='surrogateescape', size=64):
 	r = globals()[name] = (encoding, ef, context_encoder, functools.lru_cache(size)(context_encoder))
 	return r
 
+class Type(object):
+	"""
+	# Terminal Type data structure and cache for composing instruction sequences.
+
+	# Conceptually, this is a Terminal Capabilities set coupled with an encoding. However,
+	# standard terminfo databases are not referenced as the target applications are those
+	# committed to modern terminal emulators supporting commonly employed standards or practices.
+	"""
+
+	_escape_character = b'\x1b'
+	_field_separator = b';'
+	_join = _field_separator.join
+	_csi_init = _escape_character + b'['
+	_osc_init = _escape_character + b']'
+	_st = _escape_character = b'\\' # String Terminator
+
+	_reset_text_attributes = b'0'
+
+	# Support for SGR color.
+	@staticmethod
+	def select_foreground_16(code, offsets=(30, 90)):
+		return offsets[code//8] + (code % 8)
+
+	@staticmethod
+	def select_background_16(code, offsets=(40, 100)):
+		return offsets[code//8] + (code % 8)
+
+	select_foreground_256 = b'38;5'
+	select_background_256 = b'48;5'
+	select_foreground_rgb = b'38;2'
+	select_background_rgb = b'48;2'
+
+	# Pairs are of the form: (Initiate, Terminate)
+	style_codes = {
+		'bold': (b'1', b'22'),
+		'feint': (b'2', b'22'),
+		'blink': (b'5', b'25'),
+		'rapid': (b'6', b'25'),
+
+		'italic': (b'3', b'23'),
+		'underline': (b'4', b'24'),
+		'inverse': (b'7', b'27'),
+		'invisible': (b'8', b'28'),
+		'cross': (b'9', b'29'),
+
+		# Does not appear to be commonly supported.
+		'double-underline': (b'21', b'24'),
+		'frame': (b'51', b'54'),
+		'encircle': (b'52', b'54'),
+		'overline': (b'53', b'55'),
+	}
+
+	def esc(self, string:bytes):
+		"""
+		# Escape prefixed string.
+		"""
+		return self._escape_character + string
+
+	def csi(self, terminator:bytes, *parts:bytes):
+		"""
+		# Control Sequence Introducer
+		"""
+		return self._csi_init + self._join(parts) + terminator
+
+	def osc(self, *parts):
+		"""
+		# Operating System Command
+		"""
+		return self._osc_init + self._join(parts) + self._st
+
+	def csi_filter_empty(self, terminator:bytes, *parts:bytes):
+		"""
+		# &csi variant that returns an empty string when &parts is empty.
+		"""
+		if parts == ():
+			return b''
+		return self._csi_init + self._join(parts) + terminator
+
+	def select_color(self, target, color_code,
+			targets_rgb={True:select_foreground_rgb,False:select_background_rgb},
+			targets_256={True:select_foreground_256,False:select_background_256},
+			str=str, map=map
+		):
+		"""
+		# Values beyond 24-bit are ignored.
+		# Negatives select from traditional palettes or stored references.
+		"""
+		cie = self.cached_integer_encode
+
+		if color_code >= 0:
+			r = (color_code >> 16) & 0xFF
+			g = (color_code >> 8) & 0xFF
+			b = (color_code >> 0) & 0xFF
+
+			return (targets_rgb[target], self._join(map(cie, (r, g, b))))
+		else:
+			color_code = -color_code
+
+			if color_code <= 256:
+				# 1-256 inclusive; 0 (-0) is recognized as a 24-bit color.
+				return (targets_256[target], cie(color_code-1))
+			elif color_code == 1024:
+				# Special code for defaults.
+				if target:
+					return (cie(39),)
+				else:
+					return (cie(49),)
+			else:
+				# Sixteen colors offset at 512.
+				color_code -= 512
+				assert color_code < 16
+
+				if target:
+					return (cie(self.select_foreground_16(color_code)),)
+				else:
+					return (cie(self.select_background_16(color_code)),)
+
+	@staticmethod
+	def transition_traits(style_codes, from_traits, to_traits, chain=itertools.chain):
+		kept = from_traits & to_traits # traits to ignore
+
+		# Must precede newtraits.
+		cleartraits = kept ^ from_traits
+		tclear = (style_codes[x][1] for x in cleartraits)
+
+		# Must follow cleartraits as some trait exits apply to multiple
+		# enters. (double-underline and underline for instance)
+		newtraits = kept ^ to_traits
+		tset = (style_codes[x][0] for x in newtraits)
+
+		return chain(tclear, tset)
+
+	@staticmethod
+	def change_text_traits(style_codes, index, traits):
+		return (style_codes[x][index] for x in traits)
+
+	def select_transition(self, former:RenderParameters, latter:RenderParameters) -> typing.Iterable[bytes]:
+		"""
+		# Construct SGR codes necessary to transition the SGR state from &former to &latter.
+
+		# Usually called through &transition_render_parameters.
+		"""
+
+		if former == latter:
+			# Identical; no transition.
+			return
+
+		# text color
+		current = former[0]
+		target = latter[0]
+		if current != target:
+			yield from self.select_color(True, target)
+
+		# cell color
+		current = former[1]
+		target = latter[1]
+		if current != target:
+			yield from self.select_color(False, target)
+
+		# text traits
+		current = former[2]
+		target = latter[2]
+		if current != target:
+			yield from self.transition_traits(self.style_codes, current, target)
+
+	def transition_render_parameters(self, former, latter):
+		return self.csi_filter_empty(b'm', *self.select_transition(former, latter))
+
+	def reset_render_parameters(self, state):
+		return self._csi(b'm',
+			self.cached_integer_encode(0),
+			*self.select_color(True, state.textcolor),
+			*self.select_color(False, state.cellcolor),
+			*self.change_text_traits(state.traits),
+		)
+
+	def __init__(self,
+			encoding,
+			errors='surrogateescape',
+			integer_encode_cache_size=32,
+			word_encode_cache_size=32,
+		):
+
+		self.encoding = encoding
+		ef = codecs.getencoder(encoding) # standard library codecs
+		self._encoder = ef
+
+		def ttype_encode(obj, errors=errors, str=str, ef=ef):
+			return ef(str(obj), errors)[0] # str.encode(&encoding)
+
+		# Direct encoder access.
+		self.encode = ttype_encode
+
+		# XXX: refer to cache handle rather than functools.lru_cache directly
+		self.cached_integer_encode = functools.lru_cache(integer_encode_cache_size)(ttype_encode)
+		self.cached_words_encode = functools.lru_cache(word_encode_cache_size)(ttype_encode)
+
+		umethod = self.__class__.transition_render_parameters
+		self.cached_transition = (functools.lru_cache(16)(umethod))
+
+default_terminal_type = Type('utf-8')
+
 class Context(object):
 	"""
 	# Rendering Context for character matrices.
 
-	# Initialized with the encoding that text should be encoded with; defaults to `'utf-8'`.
+	# Initialized with the terminal &Type that designates how escape sequences should be serialized.
 
 	# Methods beginning with (id)`context_` are Context configuration interfaces
 	# returning the instance for method chaining. After creating a &Context instance,
@@ -69,53 +271,10 @@ class Context(object):
 		Words, \
 		Page
 
-	default_render_parameters = RenderParameters((-1024, -1024, core.NoTraits))
+	default_render_parameters = core.RenderParameters((-1024, -1024, core.NoTraits))
 
 	control_mapping = {chr(i): chr(0x2400 + i) for i in range(32)}
 	control_table = str.maketrans(control_mapping)
-
-	escape_character = b'\x1b'
-	_join = b';'.join
-	_csi_init = b'\x1b['
-	_osc_init = b'\x1b]'
-	_st = b'\x1b\\' # String Terminator
-	_reset_text_attributes = b'0'
-
-	# Support for SGR color.
-	@staticmethod
-	def _select_foreground_16(code, offsets=(30, 90)):
-		return offsets[code//8] + (code % 8)
-
-	@staticmethod
-	def _select_background_16(code, offsets=(40, 100)):
-		return offsets[code//8] + (code % 8)
-
-	_select_foreground_256 = b'38;5'
-	_select_background_256 = b'48;5'
-	_select_foreground_rgb = b'38;2'
-	_select_background_rgb = b'48;2'
-
-	# Pairs are of the form: (Initiate, Terminate)
-	_style_codes = {
-		'bold': (b'1', b'22'),
-		'feint': (b'2', b'22'),
-		'blink': (b'5', b'25'),
-		'rapid': (b'6', b'25'),
-
-		'italic': (b'3', b'23'),
-		'underline': (b'4', b'24'),
-		'inverse': (b'7', b'27'),
-		'invisible': (b'8', b'28'),
-		'cross': (b'9', b'29'),
-
-		# Does not appear to be commonly supported.
-		'double-underline': (b'21', b'24'),
-		'frame': (b'51', b'54'),
-		'encircle': (b'52', b'54'),
-		'overline': (b'53', b'55'),
-	}
-
-	escape_sequence = _csi_init
 
 	@staticmethod
 	@functools.lru_cache(32)
@@ -125,24 +284,23 @@ class Context(object):
 	point = (None, None)
 	dimensions = (None, None)
 	width = height = None
-	def __init__(self, encoding='utf-8'):
+	def __init__(self, encoding='utf-8', type=default_terminal_type):
+		self.terminal_type = type
+
+		self._transition = functools.partial(type.cached_transition, type)
+		self._csi = type.csi
+		self._osc = type.osc
+		self._csi_filter_empty = type.csi_filter_empty
+
 		self._context_text_color = -1024
 		self._context_cell_color = -1024
 		self._context_cursor = (0, 0)
 
-		codec = encoders(encoding)
-		self.encoding, self._encoder, self._encode, self._cached_encode = codec
-		self.encode = codec[-1]
-
-		# This is a hack that needs to go away.
-		self._terminal_type_key = hash((encoding, self._csi_init, self._osc_init))
-
-	def __hash__(self):
-		return self._terminal_type_key
+		self.encode = type.cached_integer_encode
 
 	@property
 	def _context_traits(self):
-		return (self._context_text_color, self._context_cell_color, 0)
+		return self.RenderParameters((self._context_text_color, self._context_cell_color, self.Traits(0)))
 
 	def context_set_position(self, point:typing.Tuple[int, int]) -> 'Context':
 		"""
@@ -177,23 +335,6 @@ class Context(object):
 		self._context_cell_color = color_id
 		return self
 
-	def _csi(self, terminator, *parts):
-		# Control Sequence Introducer
-		return self._csi_init + self._join(parts) + terminator
-	escape = _csi
-
-	def _osc(self, *parts):
-		# Operating System Command
-		return self._osc_init + self._join(parts) + self._osc_terminate
-
-	def _csi_filter_empty(self, terminator, *parts):
-		"""
-		# &escape variant that returns an empty string when &parts is empty.
-		"""
-		if parts == ():
-			return b''
-		return self.escape_sequence + self._join(parts) + terminator
-
 	def draw_unit_vertical(self, character):
 		e = self.encode
 		if not character:
@@ -219,70 +360,32 @@ class Context(object):
 	def draw_segment_horizontal(self, unit, length):
 		return self.draw_unit_horizontal(unit) * length
 
-	@functools.lru_cache(32)
-	def _color_selector(self, target, color_code,
-			targets_rgb={True:_select_foreground_rgb,False:_select_background_rgb},
-			targets_256={True:_select_foreground_256,False:_select_background_256},
-			str=str,
-		):
-		"""
-		# Color code cache. Values beyond 24-bit are ignored. Negatives select from traditional palettes.
-		"""
-		e = self.encode
-
-		if color_code >= 0:
-			r = (color_code >> 16) & 0xFF
-			g = (color_code >> 8) & 0xFF
-			b = (color_code >> 0) & 0xFF
-
-			return (targets_rgb[target], b';'.join(map(e, (r, g, b))))
-		else:
-			color_code = -color_code
-			if color_code <= 256:
-				# 1-256 inclusive; 0 (-0) is recognized as a 24-bit color.
-				return (targets_256[target], self.encode(color_code-1))
-			elif color_code == 1024:
-				# Special code for defaults.
-				if target:
-					return (self.encode(39),)
-				else:
-					return (self.encode(49),)
-			else:
-				# Sixteen colors offset at 512.
-				color_code -= 512
-				assert color_code < 16
-
-				if target:
-					return (self.encode(self._select_foreground_16(color_code)),)
-				else:
-					return (self.encode(self._select_background_16(color_code)),)
-
 	def set_cell_color(self, color:int) -> bytes:
 		"""
 		# Construct the escape sequence for selecting a different cell (background) color.
 		"""
-		return self._csi(b'm', *self._color_selector(False, color))
+		return self._csi(b'm', *self.terminal_type.select_color(False, color))
 
 	def set_text_color(self, color:int) -> bytes:
 		"""
 		# Construct the escape sequence for selecting a different text (foreground) color.
 		"""
-		return self._csi(b'm', *self._color_selector(True, color))
+		return self._csi(b'm', *self.terminal_type.select_color(True, color))
 
 	def set_render_parameters(self, rp:RenderParameters) -> bytes:
-		return b''.join(self.transition((None, None, None), rp))
+		return self._transition((None, None, None), rp)
 
 	def reset_text_color(self) -> bytes:
 		"""
 		# Use the text color configured with &context_set_text_color.
 		"""
-		return self._csi(b'm', *self._color_selector(True, self._context_text_color))
+		return self._csi(b'm', *self.terminal_type.select_color(True, self._context_text_color))
 
 	def reset_cell_color(self) -> bytes:
 		"""
 		# Use the cell color configured with &context_set_cell_color.
 		"""
-		return self._csi(b'm', *self._color_selector(False, self._context_cell_color))
+		return self._csi(b'm', *self.terminal_type.select_color(False, self._context_cell_color))
 
 	def reset_colors(self) -> bytes:
 		"""
@@ -290,8 +393,8 @@ class Context(object):
 		# a sequence to instruct the terminal to use those colors.
 		"""
 		return self._csi(b'm', *(
-			self._color_selector(True, self._context_text_color) + \
-			self._color_selector(False, self._context_cell_color)
+			self.terminal_type.select_color(True, self._context_text_color) + \
+			self.terminal_type.select_color(False, self._context_cell_color)
 		))
 
 	def reset_text(self) -> bytes:
@@ -300,58 +403,9 @@ class Context(object):
 		"""
 		return self._csi(b'm', *(
 			(b'0',) + \
-			self._color_selector(True, self._context_text_color) + \
-			self._color_selector(False, self._context_cell_color)
+			self.terminal_type.select_color(True, self._context_text_color) + \
+			self.terminal_type.select_color(False, self._context_cell_color)
 		))
-
-	def _transition(self,
-			leading:RenderParameters,
-			following:RenderParameters,
-			style_codes=_style_codes,
-		) -> typing.Iterable[bytes]:
-		"""
-		# Construct escape sequences necessary to transition the SGR state from
-		# &leading to &following.
-
-		# Used by &render to minimize the emitted sequences for displaying a &.core.Phrase.
-		"""
-
-		if leading == following:
-			# Identical; no transition.
-			return
-
-		# text color
-		current = leading[0]
-		target = following[0]
-		if current != target:
-			yield from self._color_selector(True, target)
-
-		# cell color
-		current = leading[1]
-		target = following[1]
-		if current != target:
-			yield from self._color_selector(False, target)
-
-		# text traits
-		current = leading[2]
-		target = following[2]
-		if current != target:
-			kept = current & target # traits to ignore
-
-			# Must precede newtraits.
-			cleartraits = target.__class__(kept ^ current)
-			for x in cleartraits:
-				yield style_codes[x][1]
-
-			# Must follow cleartraits as some trait exits apply to multiple
-			# enters. (double-underline and underline for instance)
-			newtraits = target.__class__(kept ^ target)
-			for x in newtraits:
-				yield style_codes[x][0]
-
-	@functools.lru_cache(32)
-	def transition(self, leading:RenderParameters, following:RenderParameters) -> bytes:
-		return self._csi_filter_empty(b'm', *self._transition(leading, following))
 
 	def draw_words(self, phraseword, control_map=control_table):
 		"""
@@ -380,9 +434,8 @@ class Context(object):
 			# provided to the next render call to make minimal transitions.
 		"""
 
-		encoding = self.encoding
-		e = self.encode
-		transition = self.transition
+		e = self.terminal_type.encode
+		transition = self._transition
 
 		if rparams is None:
 			last = self._context_traits
@@ -671,8 +724,8 @@ class Screen(Context):
 		# Instruct the emulator to use the given title for the window.
 		# The given &title should be plain text and control characters will be translated.
 		"""
-		etitle = self._encoder(title.translate(self.control_table))[0]
-		return self._osc_init + b'2;' + etitle + self._st
+		etitle = self.terminal_type.encode(title.translate(self.control_table))
+		return self.terminal_type._osc_init + b'2;' + etitle + self.terminal_type._st
 
 	def reset(self):
 		"""
@@ -696,13 +749,13 @@ class Screen(Context):
 		"""
 		# Emulator level cursor storage.
 		"""
-		return self.escape_character + b'7' # Also, CSI s, but maybe less portable.
+		return self.terminal_type.esc(b'7') # Also, CSI s, but maybe less portable.
 
 	def restore_cursor_location(self):
 		"""
 		# Restore a previously stored cursor location.
 		"""
-		return self.escape_character + b'8' # Also, CSI u, but maybe less portable.
+		return self.terminal_type.esc(b'8')
 
 	def scroll_up(self, count):
 		"""

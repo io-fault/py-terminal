@@ -680,7 +680,7 @@ class RenderParameters(tuple):
 		return self.__class__((
 			textcolor if textcolor is not None else self[0],
 			cellcolor if cellcolor is not None else self[1],
-			self[2].construct(*traits, From=int(self[2])),
+			self[2].construct(*traits, From=int(self[2])) if traits else self[2],
 			*self[3:]
 		))
 
