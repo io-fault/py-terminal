@@ -56,27 +56,27 @@ def test_Context_render_transitions(test):
 
 	# Underline to bold.
 	ph = core.Phrase.construct([
-		("Simple", -1024, -1024, core.Traits.construct('underline')),
-		(" ", -1024, -1024, core.Traits.construct('bold')),
-		("phrase.", -1024, -1024, library.Traits.construct('bold')),
+		("Simple", -1024, -1024, s.Traits.construct('underline')),
+		(" ", -1024, -1024, s.Traits.construct('bold')),
+		("phrase.", -1024, -1024, s.Traits.construct('bold')),
 	])
 	rph = list(s.render(ph))
 	test/rph == [b'\x1b[4m', b'Simple', b'\x1b[24;1m', b' ', b'', b'phrase.']
 
 	# Underline to far bold.
 	ph = core.Phrase.construct([
-		("Simple", -1024, -1024, core.Traits.construct('underline')),
-		(" ", -1024, -1024, core.Traits.construct('underline')),
-		("phrase.", -1024, -1024, core.Traits.construct('bold')),
+		("Simple", -1024, -1024, s.Traits.construct('underline')),
+		(" ", -1024, -1024, s.Traits.construct('underline')),
+		("phrase.", -1024, -1024, s.Traits.construct('bold')),
 	])
 	rph = list(s.render(ph))
 	test/rph == [b'\x1b[4m', b'Simple', b'', b' ', b'\x1b[24;1m', b'phrase.']
 
 	# New text.
 	ph = core.Phrase.construct([
-		("Simple", -1024, -1024, core.Traits.construct('underline')),
-		(" ", -1024, -1024, core.NoTraits),
-		("phrase.", -1024, -1024, core.Traits.construct('bold')),
+		("Simple", -1024, -1024, s.Traits.construct('underline')),
+		(" ", -1024, -1024, s.Traits.none()),
+		("phrase.", -1024, -1024, s.Traits.construct('bold')),
 	])
 	rph = list(s.render(ph))
 	test/rph == [b'\x1b[4m', b'Simple', b'\x1b[24m', b' ', b'\x1b[1m', b'phrase.']

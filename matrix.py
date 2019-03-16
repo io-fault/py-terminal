@@ -1,8 +1,8 @@
 """
 # Character matrix rendering contexts.
 
-# Holds &Context and &Screen defintions for constructing escape sequences to be transmitted
-# to the terminal.
+# Holds &Type, &Context and &Screen defintions for constructing escape sequences
+# to be transmitted to the terminal.
 """
 import functools
 import itertools
@@ -11,36 +11,6 @@ import codecs
 
 from ..system import text
 from . import core
-from .core import \
-	Units, \
-	Phrase, \
-	Traits, \
-	RenderParameters, \
-	Page
-
-def encoders(encoding, errors='surrogateescape', size=64):
-	"""
-	# Cached encoder lookup. Internally composes a function with the configured
-	# error handler that returns the encoded string alone. Caches the resolved
-	# encoding information and functions in the module's globals for repeat reads.
-
-	# [ Returns ]
-	# Tuple of four items.
-
-	# # &encoding parameter.
-	# # `codecs.getencoder(encoding)` result
-	# # &..collections.abc.Callable
-	# # Caching form of the prior composed callable.
-	"""
-	name = "_" + encoding.replace("-", "_") + "_" + errors.replace("-", "_")
-	if name in globals():
-		return globals()[name]
-
-	ef = codecs.getencoder(encoding)
-	def context_encoder(obj, errors=errors, str=str, ef=ef):
-		return ef(str(obj), errors)[0] # str.encode(&encoding)
-	r = globals()[name] = (encoding, ef, context_encoder, functools.lru_cache(size)(context_encoder))
-	return r
 
 class Type(object):
 	"""
@@ -178,7 +148,7 @@ class Type(object):
 	def change_text_traits(style_codes, index, traits):
 		return (style_codes[x][index] for x in traits)
 
-	def select_transition(self, former:RenderParameters, latter:RenderParameters) -> typing.Iterable[bytes]:
+	def select_transition(self, former:core.RenderParameters, latter:core.RenderParameters) -> typing.Iterable[bytes]:
 		"""
 		# Construct SGR codes necessary to transition the SGR state from &former to &latter.
 
