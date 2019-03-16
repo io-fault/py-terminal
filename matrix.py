@@ -302,6 +302,12 @@ class Context(object):
 	def _context_traits(self):
 		return self.RenderParameters((self._context_text_color, self._context_cell_color, self.Traits(0)))
 
+	@property
+	def context_render_parameters(self):
+		return self.RenderParameters((
+			self._context_text_color, self._context_cell_color, self.Traits(0)
+		))
+
 	def context_set_position(self, point:typing.Tuple[int, int]) -> 'Context':
 		"""
 		# Designate the absolute positioning of the character matrix.
