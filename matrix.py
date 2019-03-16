@@ -413,7 +413,7 @@ class Context(object):
 		# with the Context's configured encoding.
 		"""
 
-		return self._encode(phraseword.translate(control_map))
+		return self.terminal_type.encode(phraseword.translate(control_map))
 
 	def render(self, phrase:typing.Iterable[Words], rparams:RenderParameters=None) -> typing.Iterable[bytes]:
 		"""

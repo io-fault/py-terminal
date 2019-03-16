@@ -154,6 +154,13 @@ def test_Context_properties(test):
 	test/ctx.height == None
 	test/ctx.point == (None, None)
 
+def test_Context_draw_words(test):
+	"""
+	# - &library.Context.draw_words
+	"""
+	ctx = library.Context()
+	b'test' in test/ctx.draw_words("test")
+
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
 	libtest.execute(sys.modules[__name__])
