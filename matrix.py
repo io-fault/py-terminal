@@ -143,6 +143,14 @@ class Type(object):
 		"""
 		return self.pm(self._pm_restore, map(self.cached_integer_encode, options))
 
+	def wm_title(self, title):
+		"""
+		# Instruct the emulator to use the given title for the window.
+		# The given &title should be plain text and control characters will be translated.
+		"""
+		etitle = self.encode(title)
+		return self._osc_init + b"2;" + etitle + b"\x07"
+
 	def select_color(self, target, color_code,
 			targets_rgb={True:select_foreground_rgb,False:select_background_rgb},
 			targets_256={True:select_foreground_256,False:select_background_256},
@@ -786,8 +794,7 @@ class Screen(Context):
 		# Instruct the emulator to use the given title for the window.
 		# The given &title should be plain text and control characters will be translated.
 		"""
-		etitle = self.terminal_type.encode(title.translate(self.control_table))
-		return self.terminal_type._osc_init + b"2;" + etitle + b"\x07"
+		return self.terminal_type.wm_title(title.translate(self.control_table))
 
 	def report_window_title_text(self):
 		"""
@@ -803,6 +810,15 @@ class Screen(Context):
 			return self.terminal_type.decset(25)
 		else:
 			return self.terminal_type.decrst(25)
+
+	def set_cursor_blink(self, blinking):
+		"""
+		# Adjust cursor blink state.
+		"""
+		if blinking:
+			return self.terminal_type.decset(12)
+		else:
+			return self.terminal_type.decrst(12)
 
 	def reset(self):
 		"""

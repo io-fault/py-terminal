@@ -64,14 +64,11 @@
 
 # /cursed/
 	# The default configuration type referrenced by &setup; used by raw line disciplines.
-# /bless/
+# /cooked/
 	# A reasonable set of defaults for use with cooked line disciplines.
+	# Used primarily as an inverse for &cursed.
 # /observe/
 	# Configuration used by &.terminal.bin.observe to maximize the perceived events.
-
-# [ Engineering ]
-# The sequences are hard coded here and should rely on a &.matrix.Type instance to serialize
-# the necessary sequences.
 """
 from . import matrix
 
@@ -236,6 +233,8 @@ def setup(
 	# /destruct/
 		# Clear the module's globals (&.control) and remove it from &sys.modules after writing
 		# the initialization string to &ttydevice.fileno and registering the atexit handler.
+		# For most applications using &.control, &setup is called once and the module
+		# is never used again. By default, this is &False and the module is retained in memory.
 	# /ttydevice/
 		# The &fault.system.tty.Device instance whose restore method should be called atexit.
 		# If &tty is not provided, a &fault.system.tty.Device instance will be created from the
@@ -261,7 +260,7 @@ def setup(
 	if undomode is not None:
 		undo = b''.join(configuration(ttype, ctypes[undomode])[1:3])
 
-	restoration = undo + restores + ttype.wm(23, 0)
+	restoration = undo + restores + ttype.wm_title('') + ttype.wm(23, 0)
 	restoration += atexit
 
 	ae.register(functools.partial(_terminal_ctl_exit, ttydevice, ctype, write, restoration, limit=limit))
