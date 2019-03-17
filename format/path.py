@@ -63,19 +63,19 @@ def _f_route_path(root, route, _is_link=route_is_link):
 	while route.absolute != root.absolute and tid is not None:
 
 		if tid in {'.', '..'}:
-			yield ('/', (), color)
-			yield (tid, (), 0xff0000)
+			yield ('/', color)
+			yield (tid, 0xff0000)
 		else:
 			if _is_link(route):
-				yield ('/', (), color)
-				yield (tid, (), route_colors['path-link'])
+				yield ('/', color)
+				yield (tid, route_colors['path-link'])
 			else:
-				yield (tid + '/', (), color)
+				yield (tid + '/', color)
 
 		route = route.container
 		tid = route.identifier
 	else:
-		yield ('/', (), color)
+		yield ('/', color)
 
 def f_route_path(root, route):
 	l = list(_f_route_path(root, route))
@@ -101,7 +101,7 @@ def f_route_identifier(route, warning=False):
 		elif t is None:
 			t = 'file-not-found'
 
-	return [(route.identifier, (), route_colors[t])]
+	return [(route.identifier, route_colors[t])]
 
 def f_route_absolute(route, warning=False):
 	"""
@@ -110,7 +110,7 @@ def f_route_absolute(route, warning=False):
 
 	if route.identifier is None:
 		# root directory path
-		return [('/', (), route_colors['filesystem-root'])]
+		return [('/', route_colors['filesystem-root'])]
 
 	root = route.container
 	last = None
@@ -118,7 +118,7 @@ def f_route_absolute(route, warning=False):
 	while root.identifier is not None:
 		ftyp = _f_route_factor_type(root)
 		if ftyp == 'context':
-			prefix = [(str(root), (), None)]
+			prefix = [(str(root), -1024)]
 			break
 
 		last = root
@@ -131,16 +131,19 @@ def f_route_absolute(route, warning=False):
 	return prefix + f_route_path(root, route.container) + f_route_identifier(route, warning=warning)
 
 if __name__ == '__main__':
-	import sys
+	import sys, itertools
 	from ...routes import library as l
 	from .. import matrix
 	screen = matrix.Screen()
 	values = sys.argv[1:]
 
+	rp = screen.terminal_type.normal_render_parameters
 	for x in values:
 		r = l.File.from_path(x)
-		phrase = screen.Phrase.construct([
-			(x[0], x[-1], None, screen.Traits.construct(*x[1]))
-			for x in f_route_absolute(r)
-		])
+		phrase = screen.Phrase.from_words(
+			itertools.chain(*[
+				rp.apply(textcolor=color).form(s)
+				for s, color in f_route_absolute(r)
+			])
+		)
 		sys.stderr.buffer.write(b''.join(screen.render(phrase)) + b'\n')
