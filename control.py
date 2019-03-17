@@ -109,7 +109,7 @@ def configuration(ttype, settings, options=private_mode_options) -> bytes:
 	# &settings is normally retrieved by selecting an entry from &ctypes.
 	"""
 
-	mode, undo, isets, irsts = settings
+	undo, mode, isets, irsts = settings
 	sets = [options[k] for k in isets]
 	rsts = [options[k] for k in irsts]
 	sets.sort()
@@ -126,8 +126,8 @@ def configuration(ttype, settings, options=private_mode_options) -> bytes:
 # Configuration Types (ttydevice mode, PM sets, PM resets)
 ctypes = {
 	'cursed': (
-		'raw',
-		'cooked', {
+		'cooked', # revert using
+		'raw', {
 			'mouse-extended-protocol',
 			'mouse-drag',
 			'alternate-screen',
@@ -139,11 +139,13 @@ ctypes = {
 		},
 	),
 	'cooked': (
-		None,
-		None, {
+		None, # no revert
+		'cooked', {
 			'line-wrap',
 			'cursor-visible',
+			# No margin bell assignment; force outer program to re-enable.
 		}, {
+			'mouse-extended-protocol',
 			'mouse-events',
 			'mouse-drag',
 			'mouse-motion',
@@ -152,8 +154,8 @@ ctypes = {
 		},
 	),
 	'observe': (
-		'raw',
-		'cooked', {
+		'cooked', # revert using
+		'raw', {
 			'mouse-extended-protocol',
 			'mouse-events',
 			'mouse-drag',
@@ -162,6 +164,7 @@ ctypes = {
 			'focus-events',
 		}, (),
 	),
+	# no-op ctype
 	'prepared': (None, None, (), ()),
 }
 
@@ -189,7 +192,7 @@ def _terminal_ctl_exit(tty, ctype, write, restoration, limit=64):
 
 def _terminal_ctl_init(tty, ctype, write, initialization, limit=64):
 	# Usually called by &setup.
-	mode = ctypes[ctype][0]
+	mode = ctypes[ctype][1]
 	if mode is not None:
 		init_dev = getattr(tty, 'set_' + mode) # set_raw, normally
 		init_dev()
@@ -232,11 +235,15 @@ def setup(
 		# of the default.
 	# /destruct/
 		# Clear the module's globals (&.control) and remove it from &sys.modules after writing
-		# the initialization string to &ttydevice.fileno.
+		# the initialization string to &ttydevice.fileno and registering the atexit handler.
 	# /ttydevice/
 		# The &fault.system.tty.Device instance whose restore method should be called atexit.
 		# If &tty is not provided, a &fault.system.tty.Device instance will be created from the
 		# system's tty path (usually (fs/path)`/dev/tty`).
+	# /atinit/
+		# Additional binary string to write to the terminal device at initialization.
+	# /atexit/
+		# Additional binary string to write to the terminal device at exit.
 	"""
 	import functools
 	import atexit as ae
@@ -247,10 +254,14 @@ def setup(
 		ttydevice = Device.open()
 	ttydevice.record()
 
-	undo, s, r, saves, restores = configuration(ttype, ctypes[ctype])
+	undomode, s, r, saves, restores = configuration(ttype, ctypes[ctype])
 	init = saves + s + r + ttype.wm(22,0) + atinit
 
-	restoration = restores + ttype.wm(23, 0)
+	undo = b''
+	if undomode is not None:
+		undo = b''.join(configuration(ttype, ctypes[undomode])[1:3])
+
+	restoration = undo + restores + ttype.wm(23, 0)
 	restoration += atexit
 
 	ae.register(functools.partial(_terminal_ctl_exit, ttydevice, ctype, write, restoration, limit=limit))
