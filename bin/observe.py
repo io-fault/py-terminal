@@ -4,7 +4,6 @@
 import sys
 import os
 from .. import events
-from .. import control
 
 def loop(tty):
 	fd = tty.fileno()
@@ -17,7 +16,11 @@ def loop(tty):
 				sys.exit(1)
 
 def main():
-	loop(control.setup('observe'))
+	from .. import control
+	screen = control.matrix.Screen()
+	sys.stdout.buffer.write(screen.set_window_title_text("Event Observations"))
+	sys.stdout.buffer.write(screen.report_window_title_text())
+	loop(control.setup(ctype='observe'))
 
 if __name__ == '__main__':
 	main()

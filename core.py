@@ -134,17 +134,15 @@ class Modifiers(int):
 
 class Event(tuple):
 	"""
-	# A single characeter from input event from a terminal device.
-
-	# Usually referenced from &.events.Character along with the lookup tables.
+	# An input event from a terminal device.
 	"""
 	__slots__ = ()
 
 	classifications = (
-		'control', # Control Character
-		'delta', # Insert/Delete keys
+		'control',    # Control Character
+		'delta',      # Insert/Delete keys
 		'navigation', # Arrow/Paging keys
-		'function', # F-keys
+		'function',   # F-keys
 		'scroll',
 		'mouse',
 	)
@@ -184,8 +182,8 @@ class Traits(int):
 	# Word attribute bitmap used to describe a part of a &Phrase.
 
 	# The bitmap of attributes allows for conflicting decorations;
-	# &.terminal makes no presumptions about how the terminal responds to
-	# these, so constraints that might be expected are not present.
+	# &..terminal makes no presumptions about how the terminal responds to
+	# these, so constraints regarding exclusive settings are not present.
 	"""
 	__slots__ = ()
 
@@ -236,7 +234,10 @@ class Traits(int):
 		for x in style:
 			i = i | (1 << Class.field_index[x])
 
-		return Class(i)
+		if not i:
+			return Class.none()
+		else:
+			return Class(i)
 
 	def test(self, *names):
 		for trait in names:
@@ -257,9 +258,12 @@ class Traits(int):
 
 	@staticmethod
 	def none() -> 'Traits':
+		"""
+		# Reference to the Zero Traits instance, &NoTraits.
+		"""
 		return NoTraits
 
-NoTraits = Traits(0) # Preferred access method is `Context.Traits.none()`
+NoTraits = Traits(0) # Preferred access method is &.matrix.Context.Traits.none()
 
 class RenderParameters(tuple):
 	"""

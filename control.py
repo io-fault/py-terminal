@@ -22,6 +22,8 @@
 
 # /line-wrap/
 	# Control line wrapping.
+# /margin-bell/
+	# Control the margin bell.
 # /cursor-visible/
 	# Control whether the cursor is visible.
 # /cursor-blink/
@@ -68,118 +70,102 @@
 	# Configuration used by &.terminal.bin.observe to maximize the perceived events.
 
 # [ Engineering ]
-# The sequences are hard coded here. &..terminal is generally focused on modern terminal emulators, but
-# in this case, using terminfo may be desireable to ensure proper configuration.
+# The sequences are hard coded here and should rely on a &.matrix.Type instance to serialize
+# the necessary sequences.
 """
-import typing
+from . import matrix
 
-_set_flag = b'h'
-_rst_flag = b'l'
-_save_flag = b's'
-_restore_flag = b'r'
-_flag_map = {True:_set_flag, False:_rst_flag}
-_escape_sequence = b'\x1b[?'
+private_mode_options = {
+	# CSI ? {0} [lhsr]
+	'alternate-screen': 1049,
+	'line-wrap': 7,
+	'margin-bell': 44,
 
-options = {
-	'alternate-screen': b'1049',
-	'line-wrap': b'7',
-	'cursor-visible': b'25',
-	'cursor-blink': b'12',
+	'cursor-visible': 25,
+	'cursor-blink': 12,
 
-	'mouse-extended-protocol': b'1006', # SGR's format is sane and the only supported one in &.events.
-	'mouse-events': b'1000',
-	'mouse-drag': b'1002',
-	'mouse-motion': b'1003',
-	'bracket-paste-mode': b'2004',
-	'mouse-highlight': b'1001',
+	'mouse-extended-protocol': 1006, # SGR's format is sane and the only supported one in &.events.
+	'mouse-events': 1000,
+	'mouse-drag': 1002,
+	'mouse-motion': 1003,
+	'bracket-paste-mode': 2004,
+	'mouse-highlight': 1001,
 
 	# xterm
-	'focus-events': b'1004',
-	'meta-escape': b'1036',
-	'log': b'46',
+	'focus-events': 1004,
+	'meta-escape': 1036,
+	'log': 46,
 
 	# rxvt
-	'scroll-bar': b'30',
-	'scroll-bottom-on-output': b'1010',
-	'scroll-bottom-on-input': b'1011',
+	'scroll-bar': 30,
+	'scroll-bottom-on-output': 1010,
+	'scroll-bottom-on-input': 1011,
 }
 
-def _build(flag, fields, esc=_escape_sequence):
-	for x in fields:
-		code = options[x]
-		if code:
-			yield esc + code + flag
+def configuration(ttype, settings, options=private_mode_options) -> bytes:
+	"""
+	# Construct the initialization and restoration sequences for the given &settings.
 
-def save(symbols:typing.Sequence[str]) -> bytes:
+	# &settings is normally retrieved by selecting an entry from &ctypes.
 	"""
-	# Save the Private Mode values referenced by &symbols.
-	"""
-	return b''.join(_build(_save_flag, symbols))
 
-def restore(symbols:typing.Sequence[str]) -> bytes:
-	"""
-	# Restore the Private Mode values referenced by &symbols.
-	"""
-	return b''.join(_build(_restore_flag, symbols))
+	mode, undo, isets, irsts = settings
+	sets = [options[k] for k in isets]
+	rsts = [options[k] for k in irsts]
+	sets.sort()
+	rsts.sort()
 
-def enable(symbols:typing.Sequence[str]) -> bytes:
-	"""
-	# Construct escape sequences enabling the options cited in &symbols.
-	# The strings in &symbols must be keys from &options.
-	"""
-	return b''.join(_build(_set_flag, symbols))
+	return (
+		undo,
+		ttype.decset(sets) if sets else b'',
+		ttype.decrst(rsts) if rsts else b'',
+		ttype.pm_save(sets+rsts),
+		ttype.pm_restore(sets+rsts)
+	)
 
-def disable(symbols:typing.Sequence[str]) -> bytes:
-	"""
-	# Construct escape sequences disabling the options cited in &symbols.
-	# The strings in &symbols must be keys from &options.
-	"""
-	return b''.join(_build(_rst_flag, symbols))
-
-def configure(settings:typing.Mapping, escape_sequence=b'\x1b[?', options=options) -> bytes:
-	"""
-	# Construct the control sequences necessary to change the terminal's options
-	# to reflect the given &settings mapping.
-
-	# The keys in &settings must be keys from &options and their values determine whether
-	# or not to enable or disable the option.
-	"""
-	return b''.join([
-		escape_sequence + options[symbol] + _flag_map[value] # No such symbol or value is not a bool.
-		for (symbol, value) in settings.items()
-		if options[symbol] # Allow symbols to be globally disabled.
-	])
-
+# Configuration Types (ttydevice mode, PM sets, PM resets)
 ctypes = {
-	'cursed': ('raw', {
-		'mouse-extended-protocol': True,
-		'mouse-drag': True,
-		'alternate-screen': True,
-		'focus-events': True,
-		'line-wrap': False,
-		'cursor-visible': False,
-	}),
-	'cooked': (None, {
-		'mouse-events': False,
-		'mouse-drag': False,
-		'mouse-motion': False,
-		'alternate-screen': False,
-		'line-wrap': True,
-		'cursor-visible': True,
-		'focus-events': False,
-	}),
-	'observe': ('raw', {
-		'mouse-extended-protocol': True,
-		'mouse-events': True,
-		'mouse-drag': True,
-		'mouse-motion': True,
-		'bracket-paste-mode': True,
-		'focus-events': True,
-	}),
-	'prepared': (None, None),
+	'cursed': (
+		'raw',
+		'cooked', {
+			'mouse-extended-protocol',
+			'mouse-drag',
+			'alternate-screen',
+			'focus-events',
+		}, {
+			'line-wrap',
+			'margin-bell',
+			'cursor-visible',
+		},
+	),
+	'cooked': (
+		None,
+		None, {
+			'line-wrap',
+			'cursor-visible',
+		}, {
+			'mouse-events',
+			'mouse-drag',
+			'mouse-motion',
+			'alternate-screen',
+			'focus-events',
+		},
+	),
+	'observe': (
+		'raw',
+		'cooked', {
+			'mouse-extended-protocol',
+			'mouse-events',
+			'mouse-drag',
+			'mouse-motion',
+			'bracket-paste-mode',
+			'focus-events',
+		}, (),
+	),
+	'prepared': (None, None, (), ()),
 }
 
-def _ctl_exit(tty, ctype, write, restoration, limit=64):
+def _terminal_ctl_exit(tty, ctype, write, restoration, limit=64):
 	# Usually called by &setup via atexit
 	issue_warning = False
 	try:
@@ -201,57 +187,79 @@ def _ctl_exit(tty, ctype, write, restoration, limit=64):
 			message = "(tty) terminal configuration may be incoherent"
 			sys.stderr.write("\n\r[!* WARNING: %s]\n\r" %(message,))
 
-def _ctl_init(tty, ctype, write, limit=64):
+def _terminal_ctl_init(tty, ctype, write, initialization, limit=64):
 	# Usually called by &setup.
-	mode, cfg = ctypes[ctype]
+	mode = ctypes[ctype][0]
 	if mode is not None:
 		init_dev = getattr(tty, 'set_' + mode) # set_raw, normally
 		init_dev()
 
-	if cfg is not None:
-		init = save(cfg.keys())
-		init += configure(cfg)
-
-	while init and limit > 0:
-		init = init[write(tty.fileno(), init):]
+	while initialization and limit > 0:
+		initialization = initialization[write(tty.fileno(), initialization):]
 		limit -= 1
 
-	if limit <= 0 and init:
+	if limit <= 0 and initialization:
+		# Didn't finish writing init?
 		pass
 
-def setup(ctype='cursed', tty=None, limit=64):
+def setup(
+		ctype:str='cursed',
+		ttype:matrix.Type=matrix.utf8_terminal_type,
+		destruct=False,
+		ttydevice=None,
+		atinit=b'', atexit=b'', limit=64,
+	):
 	"""
-	# Register an atexit handler to reconfigure the terminal into a state that is usually consistent
-	# with a shell's expectations.
+	# Initialize the terminal and kernel line discipline for the given &ctype and
+	# register an atexit handler to reconfigure the terminal into a state
+	# that is usually consistent with a shell's expectations.
 
-	# The given &tty or the created one will be returned.
+	# The given &ttydevice or the one created will be returned.
+
+	# &setup is intended to be a one-shot intiailization method for applications
+	# that can use one of the &.control.ctype entries. If it is insufficient,
+	# applications should implement their own variant.
 
 	# [ Parameters ]
 	# /ctype/
 		# The &[Configuration Type] to apply immediately after the atexit handler has been registered.
 		# Usually, the default, `'cursed'`, is the desired value and selects the configuration
 		# set from &ctypes.
-	# /tty/
-		# The &fault.system.tty.Device whose restore method should be called atexit.
+	# /ttype/
+		# The &matrix.Type instance to use to construct the initialization and restoration
+		# sequences. Defaults to the &matrix.utf8_terminal_type. Applications
+		# needing to select a distinct Type or encoding need to supply this instead
+		# of the default.
+	# /destruct/
+		# Clear the module's globals (&.control) and remove it from &sys.modules after writing
+		# the initialization string to &ttydevice.fileno.
+	# /ttydevice/
+		# The &fault.system.tty.Device instance whose restore method should be called atexit.
 		# If &tty is not provided, a &fault.system.tty.Device instance will be created from the
 		# system's tty path (usually (fs/path)`/dev/tty`).
 	"""
 	import functools
-	import atexit
+	import atexit as ae
 	from os import write
 
-	if tty is None:
+	if ttydevice is None:
 		from ..system.tty import Device
-		tty = Device.open()
-	tty.record()
+		ttydevice = Device.open()
+	ttydevice.record()
 
-	# Collect full restoration now so the module can be discarded.
-	mode, cfg = ctypes[ctype]
-	restoration = b''
-	if cfg is not None:
-		restoration = restore(cfg.keys())
+	undo, s, r, saves, restores = configuration(ttype, ctypes[ctype])
+	init = saves + s + r + ttype.wm(22,0) + atinit
 
-	atexit.register(functools.partial(_ctl_exit, tty, ctype, write, restoration, limit=limit))
-	_ctl_init(tty, ctype, write, limit=limit)
+	restoration = restores + ttype.wm(23, 0)
+	restoration += atexit
 
-	return tty
+	ae.register(functools.partial(_terminal_ctl_exit, ttydevice, ctype, write, restoration, limit=limit))
+	_terminal_ctl_init(ttydevice, ctype, write, init, limit=limit)
+
+	if destruct is True:
+		import sys
+		m = sys.modules.pop(__name__)
+		m.__dict__.clear()
+		del m
+
+	return ttydevice

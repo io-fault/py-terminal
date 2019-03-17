@@ -3,6 +3,11 @@
 
 # Holds &Type, &Context and &Screen defintions for constructing escape sequences
 # to be transmitted to the terminal.
+
+# [ Engineering ]
+# Many sequence codes are hardcoded in &Context and &Screen. The exact codes
+# should be moved to &Type and symbolically referenced in preparation for some termcap
+# loading.
 """
 import functools
 import itertools
@@ -19,6 +24,9 @@ class Type(object):
 	# Conceptually, this is a Terminal Capabilities set coupled with an encoding. However,
 	# standard terminfo databases are not referenced as the target applications are those
 	# committed to modern terminal emulators supporting commonly employed standards or practices.
+
+	# [ Engineering ]
+	# Currently unstable API. It was quickly ripped out of &Context.
 	"""
 
 	normal_render_parameters = core.RenderParameters((-1024, -1024, core.NoTraits))
@@ -29,6 +37,13 @@ class Type(object):
 	_csi_init = _escape_character + b'['
 	_osc_init = _escape_character + b']'
 	_st = _escape_character = b'\\' # String Terminator
+	_wm = b't'
+
+	_pm_set = b'h'
+	_pm_reset = b'l'
+	_pm_save = b's'
+	_pm_restore = b'r'
+	_pm_init = _csi_init + b'?'
 
 	_reset_text_attributes = b'0'
 
@@ -91,6 +106,42 @@ class Type(object):
 		if parts == ():
 			return b''
 		return self._csi_init + self._join(parts) + terminator
+
+	def wm(self, *parts:bytes):
+		"""
+		# Window Manipulations.
+		"""
+		return self._csi_init + self._join(map(self.cached_integer_encode, parts)) + self._wm
+
+	def pm(self, terminator:bytes, parts:bytes):
+		"""
+		# Private Mode Values. (DECSET/DECRST)
+		"""
+		return self._pm_init + self._join(parts) + terminator
+
+	def decset(self, options):
+		"""
+		# Set Private Mode values.
+		"""
+		return self.pm(self._pm_set, map(self.cached_integer_encode, options))
+
+	def decrst(self, options):
+		"""
+		# Reset Private Mode values.
+		"""
+		return self.pm(self._pm_reset, map(self.cached_integer_encode, options))
+
+	def pm_save(self, options):
+		"""
+		# Save Private Mode values.
+		"""
+		return self.pm(self._pm_save, map(self.cached_integer_encode, options))
+
+	def pm_restore(self, options):
+		"""
+		# Restore Private Mode values.
+		"""
+		return self.pm(self._pm_restore, map(self.cached_integer_encode, options))
 
 	def select_color(self, target, color_code,
 			targets_rgb={True:select_foreground_rgb,False:select_background_rgb},
@@ -215,6 +266,7 @@ class Type(object):
 		umethod = self.__class__.transition_render_parameters
 		self.cached_transition = (functools.lru_cache(16)(umethod))
 
+# The default terminal type used by &Context.
 utf8_terminal_type = Type('utf-8')
 
 class Context(object):
@@ -356,34 +408,34 @@ class Context(object):
 	def draw_segment_horizontal(self, unit, length):
 		return self.draw_unit_horizontal(unit) * length
 
-	def set_cell_color(self, color:int) -> bytes:
+	def set_cell_color(self, color:int):
 		"""
 		# Construct the escape sequence for selecting a different cell (background) color.
 		"""
 		return self._csi(b'm', *self.terminal_type.select_color(False, color))
 
-	def set_text_color(self, color:int) -> bytes:
+	def set_text_color(self, color:int):
 		"""
 		# Construct the escape sequence for selecting a different text (foreground) color.
 		"""
 		return self._csi(b'm', *self.terminal_type.select_color(True, color))
 
-	def set_render_parameters(self, rp:RenderParameters) -> bytes:
+	def set_render_parameters(self, rp:RenderParameters):
 		return self._transition((None, None, None), rp)
 
-	def reset_text_color(self) -> bytes:
+	def reset_text_color(self):
 		"""
 		# Use the text color configured with &context_set_text_color.
 		"""
 		return self._csi(b'm', *self.terminal_type.select_color(True, self._context_text_color))
 
-	def reset_cell_color(self) -> bytes:
+	def reset_cell_color(self):
 		"""
 		# Use the cell color configured with &context_set_cell_color.
 		"""
 		return self._csi(b'm', *self.terminal_type.select_color(False, self._context_cell_color))
 
-	def reset_colors(self) -> bytes:
+	def reset_colors(self):
 		"""
 		# Using the cell and text colors stored on the Context, &self, construct
 		# a sequence to instruct the terminal to use those colors.
@@ -393,7 +445,7 @@ class Context(object):
 			self.terminal_type.select_color(False, self._context_cell_color)
 		))
 
-	def reset_text(self) -> bytes:
+	def reset_text(self):
 		"""
 		# Reset text traits and colors.
 		"""
@@ -727,7 +779,7 @@ class Screen(Context):
 	# access to some configuration options that are not always maintained
 	# for the duration of the process.
 	"""
-	point = (0,0)
+	point = core.Point((0,0))
 
 	def set_window_title_text(self, title):
 		"""
@@ -735,7 +787,22 @@ class Screen(Context):
 		# The given &title should be plain text and control characters will be translated.
 		"""
 		etitle = self.terminal_type.encode(title.translate(self.control_table))
-		return self.terminal_type._osc_init + b'2;' + etitle + self.terminal_type._st
+		return self.terminal_type._osc_init + b"2;" + etitle + b"\x07"
+
+	def report_window_title_text(self):
+		"""
+		# Request a report containing the window title text.
+		"""
+		return self.terminal_type.wm(21)
+
+	def set_cursor_visible(self, visible):
+		"""
+		# Adjust cursor visibility.
+		"""
+		if visible:
+			return self.terminal_type.decset(25)
+		else:
+			return self.terminal_type.decrst(25)
 
 	def reset(self):
 		"""
