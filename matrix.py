@@ -317,10 +317,10 @@ class Context(object):
 	from .core import \
 		Text, \
 		Units, \
-		Phrase, \
 		Traits, \
 		RenderParameters, \
 		Words, \
+		Phrase, \
 		Page
 
 	control_mapping = {chr(i): chr(0x2400 + i) for i in range(32)}
