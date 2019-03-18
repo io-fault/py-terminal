@@ -355,7 +355,7 @@ class Context(object):
 	@property
 	def context_render_parameters(self):
 		return self.RenderParameters((
-			self._context_text_color, self._context_cell_color, self.Traits(0)
+			self._context_text_color, self._context_cell_color, self.Traits.none()
 		))
 
 	def context_set_position(self, point:typing.Tuple[int, int]) -> 'Context':
