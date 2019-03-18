@@ -46,65 +46,65 @@ escape_codes = {
 	'[O': Char(('focus', '[O', 'out', 0)),
 
 	# Special case for solo brackets. (CSI)
-	'[[': Char(('literal', '[[', '[', Meta)),
+	'[[': Char(('literal', '\x1b[[', '[', Meta)),
 
 	# XXX: This should probably trigger an exception or not occur at all.
 	# Likely, if this is seen, it means there's more data to come to complete the sequence.
 	# xterm will send this with meta escape.
-	'[': Char(('literal', '[', '[', Meta)),
+	'[': Char(('literal', '\x1b[', '[', Meta)),
 
 	# Tabs
-	'[Z': Char(('control', '[Z', 'i', Mod(shift=True))),
-	'\x19': Char(('control', '\x19', 'i', Mod(shift=True, meta=True))),
+	'[Z': Char(('control', '\x1b[Z', 'i', Mod(shift=True))),
+	'\x19': Char(('control', '\x1b\x19', 'i', Mod(shift=True, meta=True))),
 
-	'OM': Char(('control', 'OM', 'enter', Zero)),
+	'OM': Char(('control', '\x1bOM', 'enter', Zero)),
 
-	'[2~': Char(('delta', '[2~', 'insert', Zero)),
-	'[3~': Char(('delta', '[3~', 'delete', Zero)),
+	'[2~': Char(('delta', '\x1b[2~', 'insert', Zero)),
+	'[3~': Char(('delta', '\x1b[3~', 'delete', Zero)),
 
-	'[A': Char(('navigation', '[A', 'up', Zero)),
-	'[B': Char(('navigation', '[B', 'down', Zero)),
-	'[C': Char(('navigation', '[C', 'right', Zero)),
-	'[D': Char(('navigation', '[D', 'left', Zero)),
+	'[A': Char(('navigation', '\x1b[A', 'up', Zero)),
+	'[B': Char(('navigation', '\x1b[B', 'down', Zero)),
+	'[C': Char(('navigation', '\x1b[C', 'right', Zero)),
+	'[D': Char(('navigation', '\x1b[D', 'left', Zero)),
 
-	'OA': Char(('navigation', 'OA', 'up', Zero)),
-	'OB': Char(('navigation', 'OB', 'down', Zero)),
-	'OC': Char(('navigation', 'OC', 'right', Zero)),
-	'OD': Char(('navigation', 'OD', 'left', Zero)),
+	'OA': Char(('navigation', '\x1bOA', 'up', Zero)),
+	'OB': Char(('navigation', '\x1bOB', 'down', Zero)),
+	'OC': Char(('navigation', '\x1bOC', 'right', Zero)),
+	'OD': Char(('navigation', '\x1bOD', 'left', Zero)),
 
-	'[H': Char(('navigation', '[H', 'home', Zero)),
-	'[F': Char(('navigation', '[F', 'end', Zero)),
-	'[1~': Char(('navigation', '[1~', 'home', Zero)),
-	'[4~': Char(('navigation', '[4~', 'end', Zero)),
-	'[5~': Char(('navigation', '[5~', 'pageup', Zero)),
-	'[6~': Char(('navigation', '[6~', 'pagedown', Zero)),
+	'[H': Char(('navigation', '\x1b[H', 'home', Zero)),
+	'[F': Char(('navigation', '\x1b[F', 'end', Zero)),
+	'[1~': Char(('navigation', '\x1b[1~', 'home', Zero)),
+	'[4~': Char(('navigation', '\x1b[4~', 'end', Zero)),
+	'[5~': Char(('navigation', '\x1b[5~', 'pageup', Zero)),
+	'[6~': Char(('navigation', '\x1b[6~', 'pagedown', Zero)),
 
 	# VT100 compat.
 	# This potentially conflicts with meta escapes, but timing
 	# should usually manage to resolve the ambiguity.
-	'OP': Char(('function', 'OP', 1, Zero)),
-	'OQ': Char(('function', 'OQ', 2, Zero)),
-	'OR': Char(('function', 'OR', 3, Zero)),
-	'OS': Char(('function', 'OS', 4, Zero)),
+	'OP': Char(('function', '\x1bOP', 1, Zero)),
+	'OQ': Char(('function', '\x1bOQ', 2, Zero)),
+	'OR': Char(('function', '\x1bOR', 3, Zero)),
+	'OS': Char(('function', '\x1bOS', 4, Zero)),
 
-	'[11~': Char(('function', '[11~', 1, Zero)),
-	'[12~': Char(('function', '[12~', 2, Zero)),
-	'[13~': Char(('function', '[13~', 3, Zero)),
-	'[14~': Char(('function', '[14~', 4, Zero)),
-	'[15~': Char(('function', '[15~', 5, Zero)),
-	'[17~': Char(('function', '[17~', 6, Zero)),
-	'[18~': Char(('function', '[18~', 7, Zero)),
-	'[19~': Char(('function', '[19~', 8, Zero)),
-	'[20~': Char(('function', '[20~', 9, Zero)),
-	'[21~': Char(('function', '[21~', 10, Zero)),
-	'[23~': Char(('function', '[23~', 11, Zero)),
-	'[24~': Char(('function', '[24~', 12, Zero)),
+	'[11~': Char(('function', '\x1b[11~', 1, Zero)),
+	'[12~': Char(('function', '\x1b[12~', 2, Zero)),
+	'[13~': Char(('function', '\x1b[13~', 3, Zero)),
+	'[14~': Char(('function', '\x1b[14~', 4, Zero)),
+	'[15~': Char(('function', '\x1b[15~', 5, Zero)),
+	'[17~': Char(('function', '\x1b[17~', 6, Zero)),
+	'[18~': Char(('function', '\x1b[18~', 7, Zero)),
+	'[19~': Char(('function', '\x1b[19~', 8, Zero)),
+	'[20~': Char(('function', '\x1b[20~', 9, Zero)),
+	'[21~': Char(('function', '\x1b[21~', 10, Zero)),
+	'[23~': Char(('function', '\x1b[23~', 11, Zero)),
+	'[24~': Char(('function', '\x1b[24~', 12, Zero)),
 
-	'[29~': Char(('function', '[29~', 'applications', Zero)),
-	'[34~': Char(('function', '[34~', 'windows', Zero)),
+	'[29~': Char(('function', '\x1b[29~', 'applications', Zero)),
+	'[34~': Char(('function', '\x1b[34~', 'windows', Zero)),
 
-	'[200~': Char(('paste', '[200~', 'start', Zero)),
-	'[201~': Char(('paste', '[201~', 'stop', Zero)),
+	'[200~': Char(('paste', '\x1b[200~', 'start', Zero)),
+	'[201~': Char(('paste', '\x1b[201~', 'stop', Zero)),
 }
 
 # build out the codes according to the available patterns
@@ -119,7 +119,7 @@ def build_event_table():
 	)))
 
 	# insert and delete
-	for formatting, ident in (('[2;%d~', 'insert'), ('[3;%d~', 'delete')):
+	for formatting, ident in (('\x1b[2;%d~', 'insert'), ('\x1b[3;%d~', 'delete')):
 		escape_codes.update([
 			(x.string[1:], x) for x in (
 				Char(('delta', formatting %(n,), ident, mods))
@@ -128,7 +128,7 @@ def build_event_table():
 		])
 
 	# page up and page down
-	formatting = '[%s;%d~'
+	formatting = '\x1b[%s;%d~'
 	for key in (('5', 'page-up'), ('6', 'page-down'), ('1', 'home'), ('4', 'end')):
 		num, name = key
 		escape_codes.update([
@@ -139,7 +139,7 @@ def build_event_table():
 		])
 
 	# arrows and home and end
-	formatting = '[1;%d%s'
+	formatting = '\x1b[1;%d%s'
 	for key in (('A', 'up'), ('B', 'down'), ('C', 'right'), ('D', 'left'), ('H', 'home'), ('F', 'end')):
 		kid, name = key
 		escape_codes.update([
@@ -150,7 +150,7 @@ def build_event_table():
 		])
 
 	# modern function keys
-	formatting = '[%d~%d'
+	formatting = '\x1b[%d~%d'
 	for kid, fn in zip((11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24), range(1, 13)):
 		escape_codes.update([
 			(x.string[1:], x) for x in (
@@ -160,7 +160,7 @@ def build_event_table():
 		])
 
 	# media keys
-	formatting = '[%d;%d~'
+	formatting = '\x1b[%d;%d~'
 	for kid, fn in zip((15, 17, 18, 19, 20, 21, 23, 24), range(5, 12)):
 		escape_codes.update([
 			(x.string[1:], x) for x in (
@@ -169,7 +169,7 @@ def build_event_table():
 			)
 		])
 
-	formatting = '[%d;%d~'
+	formatting = '\x1b[%d;%d~'
 	for name, kid in zip(('applications', 'windows'), (29, 34)):
 		escape_codes.update([
 			(x.string[1:], x) for x in (
