@@ -66,7 +66,7 @@
 	# The default configuration type referrenced by &setup; used by raw line disciplines.
 # /cooked/
 	# A reasonable set of defaults for use with cooked line disciplines.
-	# Used primarily as an inverse for &cursed.
+	# ! NOTE: Used primarily as an inverse for &cursed.
 # /observe/
 	# Configuration used by &.terminal.bin.observe to maximize the perceived events.
 """
@@ -238,7 +238,7 @@ def setup(
 	# /ttydevice/
 		# The &fault.system.tty.Device instance whose restore method should be called atexit.
 		# If &tty is not provided, a &fault.system.tty.Device instance will be created from the
-		# system's tty path (usually (fs/path)`/dev/tty`).
+		# system's tty path (usually (fs/path)`/dev/tty`) and call its `record` method.
 	# /atinit/
 		# Additional binary string to write to the terminal device at initialization.
 	# /atexit/
