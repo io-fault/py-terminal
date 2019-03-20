@@ -799,8 +799,22 @@ class Screen(Context):
 	def report_window_title_text(self):
 		"""
 		# Request a report containing the window title text.
+
+		# The effect of this is normally disabled.
 		"""
 		return self.terminal_type.wm(21)
+
+	def report_cursor_position(self):
+		"""
+		# Request that the terminal report the cursor position.
+		"""
+		return self._csi(b"n", b"6")
+
+	def report_device_status(self):
+		"""
+		# Request that the terminal report status.
+		"""
+		return self._csi(b"n", b"5")
 
 	def set_cursor_visible(self, visible):
 		"""

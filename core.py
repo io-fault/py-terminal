@@ -59,9 +59,9 @@ class Modifiers(int):
 	__slots__ = ()
 
 	sequence = (
-		'control',
 		'shift',
 		'meta',
+		'control',
 	)
 	bits = {
 		k: 1 << i for k, i in zip(sequence, range(len(sequence)))

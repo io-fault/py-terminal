@@ -6,11 +6,12 @@ import os
 from .. import events
 
 def loop(tty):
+	parser = events.Parser()
 	fd = tty.fileno()
 	while True:
-		data = os.read(fd, 256)
+		data = os.read(fd, 512)
 		string = data.decode('utf-8')
-		for k in events.construct_character_events(string):
+		for k in parser.send((string, True)):
 			print(repr(k) + '\r')
 			if k.type == 'control' and k.identity == 'c':
 				sys.exit(1)
