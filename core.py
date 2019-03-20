@@ -138,17 +138,8 @@ class Event(tuple):
 	"""
 	__slots__ = ()
 
-	classifications = (
-		'control',    # Control Character
-		'delta',      # Insert/Delete keys
-		'navigation', # Arrow/Paging keys
-		'function',   # F-keys
-		'scroll',
-		'mouse',
-	)
-
 	@property
-	def subtype(self):
+	def subtype(self) -> str:
 		"""
 		# The classification of the character with respect to the source.
 		"""
@@ -156,14 +147,14 @@ class Event(tuple):
 	type=subtype
 
 	@property
-	def string(self):
+	def string(self) -> bytes:
 		"""
 		# The literal characters, if any, of the event. Used for forwarding key events.
 		"""
 		return self[1]
 
 	@property
-	def identity(self):
+	def identity(self) -> object:
 		"""
 		# A name for the &string contents; often the appropriate way to process
 		# character events. For complex events, this field holds a structure.
@@ -171,7 +162,7 @@ class Event(tuple):
 		return self[2]
 
 	@property
-	def modifiers(self):
+	def modifiers(self) -> Modifiers:
 		"""
 		# The identified &Modifiers of the Character.
 		"""
