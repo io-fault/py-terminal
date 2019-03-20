@@ -83,13 +83,13 @@ def test_dispatch_sequence_no_negatives(test):
 def test_Parser_literal(test):
 	"""
 	# - &events.Parser
-	# - &events._Parser
+	# - &events.parser
 	"""
 	C = events.Character
 	shift = events.Modifiers.construct(shift=True)
 	meta = events.Modifiers.construct(meta=True)
 	control = events.Modifiers.construct(control=True)
-	p = events.Parser()
+	p = events.parser()
 
 	test/p.send(("", True)) == []
 	test/p.send(("t", True)) == [events.print("t")]
@@ -103,13 +103,13 @@ def test_Parser_literal(test):
 def test_Parser_u_control(test):
 	"""
 	# - &events.Parser
-	# - &events._Parser
+	# - &events.parser
 	# - &events.sequence_map
 	"""
 	C = events.Character
 	meta = events.Modifiers.construct(meta=True)
 	control = events.Modifiers.construct(control=True)
-	p = events.Parser()
+	p = events.parser()
 
 	test/p.send(("\x1b[9;1u", True)) == [C(('control', "\x1b[9;1u", "i", 0))]
 	test/p.send(("\x1b[9;3u", True)) == [C(('control', "\x1b[9;3u", "i", meta))]
@@ -118,13 +118,13 @@ def test_Parser_u_control(test):
 def test_Parser_compound_events(test):
 	"""
 	# - &events.Parser
-	# - &events._Parser
+	# - &events.parser
 	"""
 	C = events.Character
 	shift = events.Modifiers.construct(shift=True)
 	meta = events.Modifiers.construct(meta=True)
 	control = events.Modifiers.construct(control=True)
-	p = events.Parser()
+	p = events.parser()
 
 	test/p.send(("\x1b[48;1u", True)) == [C(('literal', '\x1b[48;1u', chr(48), 0))]
 
@@ -150,13 +150,13 @@ def test_Parser_compound_events(test):
 def test_Parser_incompleted_sequence(test):
 	"""
 	# - &events.Parser
-	# - &events._Parser
+	# - &events.parser
 	"""
 	C = (lambda x,y,z,a: events.Character((x,y,z,a)))
 	shift = events.Modifiers.construct(shift=True)
 	meta = events.Modifiers.construct(meta=True)
 	control = events.Modifiers.construct(control=True)
-	p = events.Parser()
+	p = events.parser()
 
 	# Incompleted sequence.
 	test/p.send(("\x1b[48;1", True)) == [C('ignored-escape-sequence', "\x1b[48;1", None, 0)]
@@ -168,14 +168,14 @@ def test_Parser_incompleted_sequence(test):
 def test_Parser_completed_sequence(test):
 	"""
 	# - &events.Parser
-	# - &events._Parser
+	# - &events.parser
 	"""
 	C = (lambda x,y,z,a: events.Character((x,y,z,a)))
 	shift = events.Modifiers.construct(shift=True)
 	meta = events.Modifiers.construct(meta=True)
 	control = events.Modifiers.construct(control=True)
 
-	p = events.Parser()
+	p = events.parser()
 
 	# Run this multiple times to make sure the ground state is being properly maintained.
 	csi_48 = "\x1b[48;1u"
@@ -187,7 +187,7 @@ def test_Parser_completed_sequence(test):
 def test_Parser_focus_events(test):
 	"""
 	# - &events.Parser
-	# - &events._Parser
+	# - &events.parser
 	# - &events.sequence_map
 	"""
 	C = (lambda x,y,z,a: events.Character((x,y,z,a)))
@@ -195,7 +195,7 @@ def test_Parser_focus_events(test):
 	meta = events.Modifiers.construct(meta=True)
 	control = events.Modifiers.construct(control=True)
 
-	p = events.Parser()
+	p = events.parser()
 
 	# Run this multiple times to make sure the ground state is being properly maintained.
 	test/p.send(("\x1b[I", False)) == [C('focus', "\x1b[I", "in", 0)]
@@ -204,7 +204,7 @@ def test_Parser_focus_events(test):
 def test_Parser_common_tabs(test):
 	"""
 	# - &events.Parser
-	# - &events._Parser
+	# - &events.parser
 	# - &events.sequence_map
 	"""
 	C = (lambda x,y,z,a: events.Character((x,y,z,a)))
@@ -212,7 +212,7 @@ def test_Parser_common_tabs(test):
 	shift = Mods(shift=True)
 	shiftmeta = Mods(shift=True, meta=True)
 
-	p = events.Parser()
+	p = events.parser()
 
 	# Run this multiple times to make sure the ground state is being properly maintained.
 	test/p.send(("\x1b[Z", False)) == [C('control', "\x1b[Z", "i", 0)]

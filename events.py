@@ -232,12 +232,12 @@ csi_keymap = {
 }
 
 csi_terminator_keys = {
-	'A': ('up'),
-	'B': ('down'),
-	'C': ('right'),
-	'D': ('left'),
-	'H': ('home'),
-	'F': ('end'),
+	'A': 'up',
+	'B': 'down',
+	'C': 'right',
+	'D': 'left',
+	'H': 'home',
+	'F': 'end',
 }
 
 csi_alternates = {
@@ -301,7 +301,7 @@ def process_region_ground(escape, state, region, Meta=Meta):
 		yield event
 		yield from map(print, remainder)
 
-def _Parser(Sequence=list, escape="\x1b", separator=";", print=print, Meta=Meta, map=map):
+def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print, Meta=Meta, map=map):
 	"""
 	# VT100 CSI and Ground Parser constructing &core.Event sequences from
 	# received &str instances.
@@ -319,7 +319,9 @@ def _Parser(Sequence=list, escape="\x1b", separator=";", print=print, Meta=Meta,
 	lit_ground = functools.partial(map, lit_cache)
 	ground = lit_ground
 
-	continuation = ""
+	continuation = initial
+	del initial # Make sure the reference gets dropped.
+
 	events = Sequence()
 	data, finish = (yield None)
 
@@ -335,9 +337,9 @@ def _Parser(Sequence=list, escape="\x1b", separator=";", print=print, Meta=Meta,
 			continue
 
 		# If the read data length is less than the read size,
-		# the parser should presume to finish. Processors wishing to
-		# impose a delay can lie about being on an edge in order
-		# to cause a continuation.
+		# the parser should normally presume to finish.
+		# Processors wishing to impose a delay can lie about
+		# being on an edge in order to cause a continuation.
 		if not finish:
 			# Trigger continuation; stop short in next step.
 			last = -1
@@ -380,11 +382,15 @@ def _Parser(Sequence=list, escape="\x1b", separator=";", print=print, Meta=Meta,
 		data, finish = (yield events)
 		events = Sequence()
 
-def Parser():
+def parser(initial:str=""):
 	"""
-	# Construct a started &_Parser instance.
+	# Construct a started &Parser instance.
+
+	# [ Parameters ]
+	# /initial/
+		# Optional initial string to be transformed when the first (id)`send` is performed.
 	"""
-	p = _Parser()
+	p = Parser(initial=initial)
 	next(p)
 	return p
 
