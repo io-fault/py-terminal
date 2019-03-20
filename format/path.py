@@ -141,9 +141,10 @@ if __name__ == '__main__':
 	for x in values:
 		r = l.File.from_path(x)
 		phrase = screen.Phrase.from_words(
-			itertools.chain(*[
+			itertools.chain.from_iterable(
 				rp.apply(textcolor=color).form(s)
 				for s, color in f_route_absolute(r)
-			])
+			)
 		)
-		sys.stderr.buffer.write(b''.join(screen.render(phrase)) + b'\n')
+		sys.stderr.buffer.write(b''.join(screen.render(phrase)) + screen.reset_text())
+		sys.stderr.write("\n")

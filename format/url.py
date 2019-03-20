@@ -19,7 +19,7 @@ colors = {
 	'host': 0x875faf,
 	'port': 0x005f5f,
 
-	'path-root': None,
+	'path-root': -1024,
 	'path-segment': 0x6e6e6e,
 	'delimiter-path-only': 0x6e6e6e,
 	'delimiter-path-initial': 0x6e6e6e,
@@ -36,7 +36,7 @@ colors = {
 
 def f_struct(struct):
 	for t in ri.tokens(struct):
-		yield (t[1], colors.get(t[0]), None, None)
+		yield (t[1], colors.get(t[0], -1024))
 
 def f_string(string):
 	"""
@@ -45,12 +45,19 @@ def f_string(string):
 	return f_struct(ri.parse(string))
 
 if __name__ == '__main__':
-	import sys
+	import sys, itertools
 	from .. import matrix
 	screen = matrix.Screen()
 	values = sys.argv[1:] # ri, path, ts, dir: libformat dir /
 
+	rp = screen.terminal_type.normal_render_parameters
 	for x in values:
+		ph = screen.Phrase.from_words(
+			itertools.chain.from_iterable(
+				rp.apply(textcolor=color).form(s)
+				for s, color in f_string(x)
+			)
+		)
 		sys.stderr.buffer.write(
-			b''.join(screen.render(screen.Phrase.construct(f_string(x)))) + b'\n'
+			b''.join(screen.render(ph)) + b'\n'
 		)
