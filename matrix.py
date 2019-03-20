@@ -764,14 +764,6 @@ class Screen(Context):
 		"""
 		return self.terminal_type.wm_title(title.translate(self.control_table))
 
-	def report_window_title_text(self):
-		"""
-		# Request a report containing the window title text.
-
-		# The effect of this is normally disabled.
-		"""
-		return self.terminal_type.wm(21)
-
 	def report_cursor_position(self):
 		"""
 		# Request that the terminal report the cursor position.
