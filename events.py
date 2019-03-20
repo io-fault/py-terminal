@@ -241,7 +241,7 @@ csi_terminator_keys = {
 }
 
 csi_alternates = {
-	# Tabs
+	# Tabs; [.u makes this uncessary, but leave it in for compatibility.
 	'Z': ('control', 'i'),
 
 	# xterm focus events
@@ -303,7 +303,12 @@ def process_region_ground(escape, state, region, Meta=Meta):
 
 def _Parser(Sequence=list, escape="\x1b", separator=";", print=print, Meta=Meta, map=map):
 	"""
-	# VT100 CSI, OSC, and Ground Parser.
+	# VT100 CSI and Ground Parser constructing &core.Event sequences from
+	# received &str instances.
+
+	# Some functionality exceptions being that intermediate characters may not
+	# appear after the first parameter and unrecognized forms will always be
+	# emitted as a (id)`ignored-escape-sequence` event type.
 	"""
 
 	state = 'ground'

@@ -151,6 +151,42 @@ class Type(object):
 		etitle = self.encode(title)
 		return self._osc_init + b"2;" + etitle + b"\x07"
 
+	def insert_characters(self, count):
+		"""
+		# ICH, make room for &count characters. Maintains characters after the insertion.
+		"""
+		return self._csi(b'@', self.cached_integer_encode(count))
+
+	def delete_characters(self, count):
+		"""
+		# DCH, delete character moving remaining characters left.
+		"""
+		return self._csi(b'P', self.cached_integer_encode(count))
+
+	def insert_lines(self, count):
+		"""
+		# IL, make room for &count lines. Maintains lines after the insertion.
+		"""
+		return self._csi(b'L', self.cached_integer_encode(count))
+
+	def delete_lines(self, count):
+		"""
+		# DL, remove &count lines. Moves lines following the deleted up.
+		"""
+		return self._csi(b'M', self.cached_integer_encode(count))
+
+	def scroll_up(self, count):
+		"""
+		# SU, adjust the scrolling region's view by scrolling up &count lines.
+		"""
+		return self._csi(b'S', self.cached_integer_encode(count))
+
+	def scroll_up(self, count):
+		"""
+		# SD, adjust the scrolling region's view by scrolling down &count lines.
+		"""
+		return self._csi(b'T', self.cached_integer_encode(count))
+
 	def select_color(self, target, color_code,
 			targets_rgb={True:select_foreground_rgb,False:select_background_rgb},
 			targets_256={True:select_foreground_256,False:select_background_256},
@@ -592,69 +628,6 @@ class Context(object):
 
 	def clear_current_line(self):
 		return self.clear_before_cursor() + self.clear_after_cursor()
-
-	def deflate_horizontal(self, size):
-		return self._csi(b'P', self.encode(size))
-
-	def deflate_vertical(self, size):
-		return self._csi(b'M', self.encode(size))
-
-	def inflate_horizontal(self, size):
-		return self._csi(b'@', self.encode(size))
-
-	def inflate_vertical(self, size):
-		return self._csi(b'L', self.encode(size))
-
-	def deflate_area(self, area):
-		"""
-		# Delete space, (horizontal, vertical) between the cursor.
-
-		# Often used to contract space after deleting characters.
-		"""
-		change = b''
-		h, v = area
-
-		if h:
-			change += self.deflate_horizontal(h)
-		if v:
-			change += self.deflate_vertical(v)
-
-		return change
-
-	def inflate_area(self, area):
-		"""
-		# Insert space, (horizontal, vertical) between the cursor.
-
-		# Often used to make room for displaying characters.
-		"""
-		change = b''
-		h, v = area
-
-		if h:
-			change += self.inflate_horizontal(h)
-		if v:
-			change += self.inflate_vertical(v)
-
-		return change
-
-	def resize(self, old, new):
-		"""
-		# Given a number of characters from the cursor &old, resize the area
-		# to &new. This handles cases when the new size is smaller and larger than the old.
-		"""
-		deletes = self.deflate_horizontal(old)
-		spaces = self.inflate_horizontal(new)
-
-		return deletes + spaces
-
-	def delete(self, start, stop):
-		"""
-		# Delete the slice of characters moving the remainder in.
-		"""
-		buf = self.seek_start_of_line()
-		buf += self.seek_horizontal_relative(start)
-		buf += self.deflate_horizontal(stop)
-		return buf
 
 	def clear(self):
 		"""
