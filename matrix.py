@@ -647,18 +647,13 @@ class Context(object):
 
 	def erase(self, count):
 		"""
-		# Erase the given &count of characters before or after the cursor.
-		# Positive counts clear cells after the cursor, negative clears cells before the cursor.
+		# Erase the given &count of characters after the cursor.
+		# Cursor position should be unchanged after the erase.
 
 		# This should respect the current cell color, but not traits like underline.
 		"""
 
-		if count > 0:
-			return self._csi(b'X', self.encode(count))
-		elif count < 0:
-			return self._csi(b'P', self.encode(-count))
-		else:
-			return b''
+		return self._csi(b'X', self.encode(count))
 
 	def seek_absolute(self, coordinates) -> bytes:
 		"""
