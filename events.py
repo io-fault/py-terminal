@@ -250,43 +250,41 @@ csi_alternates = {
 }
 
 def sequence_map(escape, stype, action, region, remainder, Zero=Zero):
+	assert stype == 'csi'
 	origin = escape + region[:len(region) - len(remainder)]
 	type = 'ignored-escape-sequence'
 	ident = None
 	mods = Zero
 
-	if stype == 'csi':
-		intermediates, parameters, terminator = action
+	intermediates, parameters, terminator = action
 
-		if parameters[1:2] and parameters[1] is not None:
-			mods = interpret_key_modifiers(parameters[1])
+	if parameters[1:2] and parameters[1] is not None:
+		mods = interpret_key_modifiers(parameters[1])
 
-		if intermediates == "<":
-			return (mouse(origin, terminator, parameters), remainder)
-		if terminator == '~':
-			assert len(parameters) > 0 # No key-id or modifiers
-			key_id = parameters[0]
+	if intermediates == "<":
+		return (mouse(origin, terminator, parameters), remainder)
+	if terminator == '~':
+		assert len(parameters) > 0 # No key-id or modifiers
+		key_id = parameters[0]
 
-			type, ident = csi_keymap[key_id]
-		elif terminator == 'u':
-			codepoint = parameters[0]
-			ident = chr(codepoint)
-			return print(ident, source=origin, modifiers=mods), remainder
-		elif terminator in csi_terminator_keys:
-			type = 'navigation'
-			ident = csi_terminator_keys[terminator]
-		elif terminator in csi_alternates:
-			type, ident = csi_alternates[terminator]
-		elif terminator == 'R':
-			type = 'cursor'
-			ident = parameters
-			mods = None
-	else:
-		pass
+		type, ident = csi_keymap[key_id]
+	elif terminator == 'u':
+		codepoint = parameters[0]
+		ident = chr(codepoint)
+		return print(ident, source=origin, modifiers=mods), remainder
+	elif terminator in csi_terminator_keys:
+		type = 'navigation'
+		ident = csi_terminator_keys[terminator]
+	elif terminator in csi_alternates:
+		type, ident = csi_alternates[terminator]
+	elif terminator == 'R':
+		type = 'cursor'
+		ident = parameters
+		mods = None
 
 	return Character((type, origin, ident, mods)), remainder
 
-def process_region_ground(escape, state, region, Meta=Meta):
+def process_region_ground(escape, region, Meta=Meta, Zero=Zero):
 	typ = region[0:1]
 	stype, handler = type_switch.get(typ, (None, None))
 
@@ -296,12 +294,40 @@ def process_region_ground(escape, state, region, Meta=Meta):
 		yield print(start, source=escape+start, modifiers=Meta)
 		yield from map(print, region[1:])
 	else:
-		remainder, action = handler(region) # CSI or OSC.
+		remainder, action = handler(region)
 		event, remainder = sequence_map(escape, stype, action, region, remainder)
 		yield event
-		yield from map(print, remainder)
+		if (event[0], event[2]) == ("paste", "start"):
+			# Switches to &process_region_data in &Parser
+			yield Character(('data', remainder, 'paste', Zero))
+		else:
+			yield from map(print, remainder)
 
-def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print, Meta=Meta, map=map):
+def process_region_data(escape, region, Meta=Meta, Zero=Zero):
+	typ = region[0:1]
+	stype, handler = type_switch.get(typ, (None, None))
+
+	if handler is not None:
+		remainder, action = handler(region)
+		# [200~ starts and [201~ stops.
+		if not action[0] and action[-1] == '~' and action[1][0] == 201:
+			# Stop data state. No remainder if CSI is incomplete.
+			d = len(region) - len(remainder)
+			yield Character(('paste', escape+region[:d], 'stop', Zero))
+			yield from map(print, remainder)
+
+			# Otheriwse, generate data events.
+			return
+		elif action[-1] == None:
+			# Incomplete sequence.
+			yield Character(('ignored-escape-sequence', None, None, None))
+			return
+
+	# Literal Data
+	yield Character(('data', escape, 'paste', Zero))
+	yield Character(('data', region, 'paste', Zero))
+
+def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print, Zero=Zero, map=map):
 	"""
 	# VT100 CSI and Ground Parser constructing &core.Event sequences from
 	# received &str instances.
@@ -311,12 +337,12 @@ def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print,
 	# emitted as a (id)`ignored-escape-sequence` event type.
 	"""
 
-	state = 'ground'
-	process_region = process_region_ground
-
 	csi_cache = functools.lru_cache(64)(sequence_map)
 	lit_cache = functools.lru_cache(32)(print)
 	lit_ground = functools.partial(map, lit_cache)
+	putdata = (lambda x: (Character(('data', x, 'paste', Zero)),))
+
+	process_region = process_region_ground
 	ground = lit_ground
 
 	continuation = initial
@@ -332,31 +358,40 @@ def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print,
 			continuation = ""
 
 		strings = data.split(escape)
-		if not strings:
+		nregions = len(strings)
+		if nregions < 0:
 			data, finish = (yield Sequence())
 			continue
+
+		events.extend(ground(strings[0]))
+		assert events == [] if data[0:1] == escape else events != []
 
 		# If the read data length is less than the read size,
 		# the parser should normally presume to finish.
 		# Processors wishing to impose a delay can lie about
 		# being on an edge in order to cause a continuation.
-		if not finish:
+		if not finish and nregions > 1:
 			# Trigger continuation; stop short in next step.
 			last = -1
 			continuation = escape + strings[-1]
 		else:
 			last = None
 
-		# No-op/empty if data[0] is escape.
-		events.extend(ground(strings[0]))
-		assert events == [] if data[0:1] == escape else events != []
-
 		for region in strings[1:last]:
 			if region:
-				events.extend(process_region(escape, state, region))
+				events.extend(process_region(escape, region))
+				if events:
+					le = events[-1]
+					if le[0] == 'data' and le[2] == 'paste':
+						# Paste started/continued; change process_region
+						process_region = process_region_data
+						ground = putdata
+					else:
+						process_region = process_region_ground
+						ground = lit_ground
 			else:
 				# Raw escape.
-				events.append(print(escape))
+				events.extend(ground(escape))
 
 		# If the last region is empty, it's either a sequence or a
 		# literal escape that has not timed out yet.
@@ -364,8 +399,9 @@ def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print,
 			# Attempt to process last field and update continuation.
 
 			advanced = 0
-			for x in process_region(escape, state, strings[last]):
+			for x in process_region(escape, strings[last]):
 				if (x.type == 'ignored-escape-sequence'):
+					# Incomplete CSI.
 					break
 
 				# Advanced position on continuation.
@@ -378,6 +414,16 @@ def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print,
 				advanced = len(continuation)
 
 			continuation = continuation[advanced:]
+			# Check for paste.
+			if advanced and events:
+				le = events[-1]
+				if le[0] == 'data' and le[2] == 'paste':
+					# Paste started/continued; change process_region
+					process_region = process_region_data
+					ground = putdata
+				else:
+					process_region = process_region_ground
+					ground = lit_ground
 
 		data, finish = (yield events)
 		events = Sequence()

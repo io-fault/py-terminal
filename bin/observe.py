@@ -6,7 +6,7 @@ import os
 from .. import events
 
 def loop(tty):
-	parser = events.Parser()
+	parser = events.parser()
 	fd = tty.fileno()
 	while True:
 		data = os.read(fd, 512)
@@ -20,7 +20,6 @@ def main():
 	from .. import control
 	screen = control.matrix.Screen()
 	sys.stdout.buffer.write(screen.set_window_title_text("Event Observations"))
-	sys.stdout.buffer.write(screen.report_window_title_text())
 	loop(control.setup(ctype='observe'))
 
 if __name__ == '__main__':

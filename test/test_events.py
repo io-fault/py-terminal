@@ -208,7 +208,7 @@ def test_Parser_common_tabs(test):
 	# - &events.sequence_map
 	"""
 	C = (lambda x,y,z,a: events.Character((x,y,z,a)))
-	Mods =events.Modifiers.construct
+	Mods = events.Modifiers.construct
 	shift = Mods(shift=True)
 	shiftmeta = Mods(shift=True, meta=True)
 
@@ -218,6 +218,83 @@ def test_Parser_common_tabs(test):
 	test/p.send(("\x1b[Z", False)) == [C('control', "\x1b[Z", "i", 0)]
 	test/p.send(("\x1b[1;2Z", False)) == [C('control', "\x1b[1;2Z", "i", shift)]
 	test/p.send(("\x1b[1;4Z", False)) == [C('control', "\x1b[1;4Z", "i", shiftmeta)]
+
+def test_Parser_paste(test):
+	"""
+	# - &events.Parser
+	# - &events.parser
+	# - &events.process_region_data
+	"""
+	C = (lambda x,y,z,a: events.Character((x,y,z,a)))
+	N = events.Modifiers.construct()
+	p = events.parser()
+
+	# Run this multiple times to make sure the ground state is being properly maintained.
+	test/p.send(("\x1b[200~", True))[0] == C('paste', "\x1b[200~", "start", N)
+	for x in range(16):
+		test/p.send(("test data", True)) == [C('data', "test data", "paste", N)]
+
+	# Check escape handling in paste.
+	expect = [
+		C('data', "with", "paste", N),
+		C('data', "\x1b", "paste", N),
+		C('data', "[Zescape", "paste", N),
+		C('data', "\x1b", "paste", N),
+	]
+	for x in range(16):
+		test/p.send(("with\x1b[Zescape\x1b", True)) == expect
+
+	# Transition back
+	after = map(events.print, "after")
+	p.send(("\x1b[201~after", True)) == [C('paste', "\x1b[201~", 'stop', N)] + list(after)
+
+def test_Parser_paste_oneshot(test):
+	"""
+	# - &events.Parser
+	# - &events.parser
+	# - &events.process_region_data
+	"""
+	C = (lambda x,y,z,a: events.Character((x,y,z,a)))
+	N = events.Modifiers.construct()
+	p = events.parser()
+
+	for partialread in (True, False):
+		expect = [
+			C('paste', '\x1b[200~', 'start', N),
+			C('data', 'paste-content', 'paste', N),
+			C('paste', '\x1b[201~', 'stop', N),
+		]
+		test/p.send(("\x1b[200~paste-content\x1b[201~", partialread)) == expect
+
+		# check ground
+		test/p.send(("ground", partialread)) == list(map(events.print, "ground"))
+
+		expect.extend(map(events.print, "after"))
+		test/p.send(("\x1b[200~paste-content\x1b[201~after", partialread)) == expect
+
+		# check ground
+		test/p.send(("ground", partialread)) == list(map(events.print, "ground"))
+
+def test_Parser_paste_edge(test):
+	"""
+	# - &events.Parser
+	# - &events.parser
+	# - &events.process_region_data
+	"""
+	C = (lambda x,y,z,a: events.Character((x,y,z,a)))
+	N = events.Modifiers.construct()
+	p = events.parser()
+
+	test/p.send(("\x1b[200~", True))[0] == C('paste', "\x1b[200~", "start", N)
+	for x in range(16):
+		test/p.send(("test data", True)) == [C('data', "test data", "paste", N)]
+
+	# Transition back
+	after = map(events.print, "after")
+	for x in "\x1b[201":
+		test/p.send((x, False)) == [C('data', "", "paste", N)]
+
+	p.send(("~", False)) == [C('paste', "\x1b[201~", "stop", N)]
 
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
