@@ -129,6 +129,7 @@ ctypes = {
 			'mouse-drag',
 			'alternate-screen',
 			'focus-events',
+			'bracket-paste-mode',
 		}, {
 			'line-wrap',
 			'margin-bell',
@@ -148,6 +149,7 @@ ctypes = {
 			'mouse-motion',
 			'alternate-screen',
 			'focus-events',
+			'bracket-paste-mode',
 		},
 	),
 	'observe': (
