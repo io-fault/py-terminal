@@ -9,7 +9,7 @@ def loop(tty):
 	parser = events.parser()
 	fd = tty.fileno()
 	while True:
-		data = os.read(fd, 512)
+		data = os.read(fd, 1024*2)
 		string = data.decode('utf-8')
 		for k in parser.send((string, True)):
 			print(repr(k) + '\r')
