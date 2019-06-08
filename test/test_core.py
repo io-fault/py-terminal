@@ -4,6 +4,24 @@
 from .. import core as library
 notraits = library.NoTraits
 
+def test_Modifiers(test):
+	M = library.Modifiers
+
+	m = M(0)
+	test/m.control == False
+	test/m.shift == False
+	test/m.meta == False
+
+	m = M.construct(control=True, meta=True, shift=True)
+	test/m.control == True
+	test/m.shift == True
+	test/m.meta == True
+
+	m = M.construct(control=False, meta=True, shift=False)
+	test/m.meta == True
+	test/m.control == False
+	test/m.shift == False
+
 def test_Traits(test):
 	"""
 	# - &library.Traits

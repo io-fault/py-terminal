@@ -53,8 +53,6 @@ class Modifiers(int):
 
 	# The imaginary index is usually not used, but can be used to describe
 	# the modifier context or carry additional information about the event.
-
-	# Usually referenced from &.events.Modifiers.
 	"""
 	__slots__ = ()
 
@@ -76,23 +74,23 @@ class Modifiers(int):
 		)
 
 	@property
-	def none(self):
+	def none(self) -> bool:
 		"""
 		# Whether there are any modifiers present.
 		"""
-		return not (self & 0b111)
+		return not bool(self)
 
 	@property
-	def control(self):
-		return (self & 0b001)
+	def control(self) -> bool:
+		return bool(self & 0b100)
 
 	@property
-	def meta(self):
-		return (self & 0b100)
+	def meta(self) -> bool:
+		return bool(self & 0b010)
 
 	@property
-	def shift(self):
-		return (self & 0b010)
+	def shift(self) -> bool:
+		return bool(self & 0b001)
 
 	@property
 	def imaginary(self, position=len(sequence)):
