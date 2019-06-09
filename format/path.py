@@ -132,14 +132,14 @@ def f_route_absolute(route, warning=False):
 
 if __name__ == '__main__':
 	import sys, itertools
-	from ...routes import library as l
+	from ...system import files as sysfiles
 	from .. import matrix
 	screen = matrix.Screen()
 	values = sys.argv[1:]
 
 	rp = screen.terminal_type.normal_render_parameters
 	for x in values:
-		r = l.File.from_path(x)
+		r = sysfiles.Path.from_path(x)
 		phrase = screen.Phrase.from_words(
 			itertools.chain.from_iterable(
 				rp.apply(textcolor=color).form(s)
