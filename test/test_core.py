@@ -1,11 +1,11 @@
 """
-# Tests for &.core.
+# - &.core
 """
-from .. import core as library
-notraits = library.NoTraits
+from .. import core as module
+notraits = module.NoTraits
 
 def test_Modifiers(test):
-	M = library.Modifiers
+	M = module.Modifiers
 
 	m = M(0)
 	test/m.control == False
@@ -24,26 +24,26 @@ def test_Modifiers(test):
 
 def test_Traits(test):
 	"""
-	# - &library.Traits
+	# - &module.Traits
 	"""
 
-	Traits = library.Traits
+	Traits = module.Traits
 	test/Traits.construct('underline').test('underline') == True
 	test/Traits.construct('underline').test('double-underline') == False
-	test/Traits.none() == library.NoTraits
+	test/Traits.none() == module.NoTraits
 
 def test_Traits_unique(test):
 	"""
-	# - &library.Traits
+	# - &module.Traits
 	"""
 
 	# Given aliases, this will need to change.
-	s = set(map(library.Traits.construct, library.Traits.fields))
-	test/len(s) == len(library.Traits.fields)
+	s = set(map(module.Traits.construct, module.Traits.fields))
+	test/len(s) == len(module.Traits.fields)
 
 def test_Traits_expected(test):
 	"""
-	# - &library.Traits
+	# - &module.Traits
 	"""
 	seq = [
 		'underline',
@@ -65,7 +65,7 @@ def test_Traits_expected(test):
 	]
 
 	# Sanity.
-	t = library.Traits.construct(*seq)
+	t = module.Traits.construct(*seq)
 	seq.sort()
 	out = list(t)
 	out.sort()
@@ -73,10 +73,10 @@ def test_Traits_expected(test):
 
 def test_RenderParameters(test):
 	"""
-	# - &library.RenderParameters
+	# - &module.RenderParameters
 	"""
 
-	rp = library.RenderParameters.from_colors(0, 0)
+	rp = module.RenderParameters.from_colors(0, 0)
 	test/rp.textcolor == 0
 	test/rp.cellcolor == 0
 	test/rp.traits == 0
@@ -86,10 +86,10 @@ def test_RenderParameters(test):
 
 def test_RenderParameters_apply(test):
 	"""
-	# - &library.RenderParamters.apply
+	# - &module.RenderParamters.apply
 	"""
-	t = library.NoTraits
-	r = library.RenderParameters((None, None, t))
+	t = module.NoTraits
+	r = module.RenderParameters((None, None, t))
 	test/r.apply('underline').traits.test('underline') == True
 	test/r.apply('underline', 'bold').traits.test('underline') == True
 	test/r.apply('underline', 'bold').traits.test('bold') == True
@@ -99,14 +99,14 @@ def test_RenderParameters_apply(test):
 
 def test_RenderParameters_traits(test):
 	"""
-	# - &library.RenderParameters.clear
-	# - &library.RenderParameters.set
+	# - &module.RenderParameters.clear
+	# - &module.RenderParameters.set
 	"""
 
 	# Sanity
-	rp = library.RenderParameters((0, 0, library.Traits(0)))
-	ul = library.Traits.construct('underline')
-	dul = library.Traits.construct('double-underline')
+	rp = module.RenderParameters((0, 0, module.Traits(0)))
+	ul = module.Traits.construct('underline')
+	dul = module.Traits.construct('double-underline')
 
 	rp = rp.set(ul)
 	test/list(rp.traits) == ['underline']
@@ -117,11 +117,11 @@ def test_RenderParameters_traits(test):
 
 def test_RenderParameters_equality(test):
 	"""
-	# - &library.RenderParameters
+	# - &module.RenderParameters
 	"""
-	rp = library.RenderParameters((0, 0, library.Traits(0)))
-	rp1 = library.RenderParameters((0, 0, library.Traits(1)))
-	rp2 = library.RenderParameters((0, 1, library.Traits(0)))
+	rp = module.RenderParameters((0, 0, module.Traits(0)))
+	rp1 = module.RenderParameters((0, 0, module.Traits(1)))
+	rp2 = module.RenderParameters((0, 1, module.Traits(0)))
 
 	test/rp == rp
 	test/rp != rp1
@@ -129,49 +129,49 @@ def test_RenderParameters_equality(test):
 
 def test_Units(test):
 	"""
-	# - &library.Units
+	# - &module.Units
 	"""
 
 	# Validate rather features.
 	# They are important, however, for the use case
 	# of consolidating cells.
 
-	u = library.Units(("->",))
+	u = module.Units(("->",))
 	test/str(u) == "->"
 	test/len(u) == 1
 	test/u.encode('utf-8') == b"->"
 
-	u = library.Units(("->", "::"))
+	u = module.Units(("->", "::"))
 	test/str(u) == "->::"
 	test/len(u) == 2
 	test/u.encode('utf-8') == b"->::"
 
 	# Check iter() and __add__
-	test.isinstance(u + ("rhs",), library.Units)
+	test.isinstance(u + ("rhs",), module.Units)
 	test/''.join(list(u)) == str(u)
 
 def test_Units_slice(test):
 	"""
-	# - &library.Units.__getitem__
+	# - &module.Units.__getitem__
 	"""
 
-	u = library.Units(("->", "::"))
+	u = module.Units(("->", "::"))
 	test/str(u) == "->::"
 	test/len(u) == 2
 	test/u.encode('utf-8') == b"->::"
 
 	test/u[0] == "->"
 	test/u[1] == "::"
-	test.isinstance(u[:1], library.Units)
+	test.isinstance(u[:1], module.Units)
 	u += ("rhs",)
-	test.isinstance(u, library.Units)
+	test.isinstance(u, module.Units)
 	test/u[:] == u
 
 def test_grapheme(test):
 	"""
-	# - &library.Phrase.grapheme
+	# - &module.Phrase.grapheme
 	"""
-	getg = library.grapheme
+	getg = module.grapheme
 	t = "謝了春\u0353."
 
 	test/t[getg(t, 0)] == t[0]
@@ -184,15 +184,15 @@ def test_grapheme(test):
 
 def test_itergraphemes(test):
 	t = "f\u0356ield\u035B"
-	l=list(t[i] for i in library.itergraphemes(t))
+	l=list(t[i] for i in module.itergraphemes(t))
 
 def test_Phrase_properties(test):
 	"""
-	# - &library.Phrase.cellcount
-	# - &library.Phrase.stringlength
+	# - &module.Phrase.cellcount
+	# - &module.Phrase.stringlength
 	"""
 
-	ph = library.Phrase.construct([
+	ph = module.Phrase.construct([
 		("field", None, None, 0)
 	])
 	test/ph == ((5, "field", (None, None, 0)),)
@@ -202,10 +202,10 @@ def test_Phrase_properties(test):
 
 def test_Phrase_rstripcells_singular(test):
 	"""
-	# - &library.Phrase.rstripcells
-	# - &library.Phrase.rfindcell
+	# - &module.Phrase.rstripcells
+	# - &module.Phrase.rfindcell
 	"""
-	ph = library.Phrase.construct([
+	ph = module.Phrase.construct([
 		("field", None, None, 0)
 	])
 
@@ -225,7 +225,7 @@ def test_Phrase_rstripcells_singular(test):
 	test/result == ((4, "fiel", (None, None, 0)),)
 
 	# Validate empty remainder.
-	pair = library.Phrase.construct([
+	pair = module.Phrase.construct([
 		("first", None, None, 0),
 		("second", None, None, 0),
 	])
@@ -233,7 +233,7 @@ def test_Phrase_rstripcells_singular(test):
 	result = pair.rstripcells(6)
 	test/result == ((5, "first", (None, None, 0)),)
 
-findcell_phrase_1 = library.Phrase.construct([
+findcell_phrase_1 = module.Phrase.construct([
 	("field", None, None, notraits),
 	(" ", None, None, notraits),
 	("sequence", None, None, notraits),
@@ -243,7 +243,7 @@ findcell_phrase_1 = library.Phrase.construct([
 ])
 
 # Combining Characters; limited to testing on the edges of words to avoid displacing indexes.
-findcell_phrase_1_cc = library.Phrase.construct([
+findcell_phrase_1_cc = module.Phrase.construct([
 	("field\u0356\u035B", None, None, notraits),
 	(" ", None, None, notraits),
 	("sequence\u035B", None, None, notraits),
@@ -253,12 +253,12 @@ findcell_phrase_1_cc = library.Phrase.construct([
 ])
 
 # Only with respect to single unit words.
-findcell_phrase_1_units = library.Phrase.construct([
+findcell_phrase_1_units = module.Phrase.construct([
 	("field", None, None, notraits),
-	(library.Units((" ",)), None, None, notraits),
+	(module.Units((" ",)), None, None, notraits),
 	("sequence", None, None, notraits),
-	(library.Units((",",)), None, None, notraits),
-	(library.Units((" ",)), None, None, notraits),
+	(module.Units((",",)), None, None, notraits),
+	(module.Units((" ",)), None, None, notraits),
 	("terminal", None, None, notraits),
 ])
 
@@ -291,9 +291,9 @@ def t_lfindcell_1(test, phrase):
 
 def test_Phrase_lfindcell(test):
 	"""
-	# - &library.Phrase.lfindcell
+	# - &module.Phrase.lfindcell
 	"""
-	library.text.setlocale()
+	module.text.setlocale()
 	t_lfindcell_1(test, findcell_phrase_1)
 	t_lfindcell_1(test, findcell_phrase_1_cc)
 	t_lfindcell_1(test, findcell_phrase_1_units)
@@ -327,19 +327,19 @@ def t_rfindcell_1(test, phrase):
 
 def test_Phrase_rfindcell(test):
 	"""
-	# - &library.Phrase.rfindcell
+	# - &module.Phrase.rfindcell
 	"""
-	library.text.setlocale()
+	module.text.setlocale()
 	t_rfindcell_1(test, findcell_phrase_1)
 	t_rfindcell_1(test, findcell_phrase_1_cc)
 	t_rfindcell_1(test, findcell_phrase_1_units)
 
 def test_Phrase_lstripcells_singular(test):
 	"""
-	# - &library.Phrase.lstripcells
-	# - &library.Phrase.lfindcell
+	# - &module.Phrase.lstripcells
+	# - &module.Phrase.lfindcell
 	"""
-	ph = library.Phrase.construct([
+	ph = module.Phrase.construct([
 		("field", None, None, 0)
 	])
 
@@ -359,7 +359,7 @@ def test_Phrase_lstripcells_singular(test):
 	test/result == ((0, "", (None, None, 0)),)
 
 	# Validate empty remainder.
-	pair = library.Phrase.construct([
+	pair = module.Phrase.construct([
 		("first", None, None, 0),
 		("second", None, None, 0),
 	])
@@ -369,14 +369,14 @@ def test_Phrase_lstripcells_singular(test):
 
 def test_Phrase_lstripcells_wide(test):
 	"""
-	# - &library.Phrase.lstripcells
-	# - &library.Phrase.lfindcell
+	# - &module.Phrase.lstripcells
+	# - &module.Phrase.lfindcell
 
 	# Failure is likely due to a malfunctioning &wcswidth implementation.
 	"""
 
 	seq = [("謝了春",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	test/ph.lstripcells(1)[0][1] == "*了春"
 	test/ph.lstripcells(2)[0][1] == "了春"
 	test/ph.lstripcells(3)[0][1] == "*春"
@@ -386,14 +386,14 @@ def test_Phrase_lstripcells_wide(test):
 
 def test_Phrase_rstripcells_wide(test):
 	"""
-	# - &library.Phrase.rstripcells
-	# - &library.Phrase.rfindcell
+	# - &module.Phrase.rstripcells
+	# - &module.Phrase.rfindcell
 
 	# Failure is likely due to a malfunctioning &wcswidth implementation.
 	"""
 
 	seq = [("謝了春",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	test/ph.rstripcells(1)[0][1] == "謝了*"
 	test/ph.rstripcells(2)[0][1] == "謝了"
 	test/ph.rstripcells(3)[0][1] == "謝*"
@@ -403,30 +403,30 @@ def test_Phrase_rstripcells_wide(test):
 
 def test_Phrase_lstripcells_boundary(test):
 	"""
-	# - &library.Phrase.lstripcells
-	# - &library.Phrase.lfindcell
+	# - &module.Phrase.lstripcells
+	# - &module.Phrase.lfindcell
 	"""
 
 	seq = [("謝了春",), ("check",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	test/ph.lstripcells(6)[0][1] != "" # Should not include empty initial.
 	test/ph.lstripcells(6)[0][1] == "check"
 	test/ph.lstripcells(7)[0][1] == "heck"
 	test/IndexError ^ (lambda: ph.lstripcells(7).__getitem__(1))
 
 	seq = [("check",), ("謝了春",),]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	test/ph.lstripcells(5)[0][1] != "" # Should not include empty initial.
 	test/ph.lstripcells(7)[0][1] == "了春"
 
 def test_Phrase_rstripcells_boundary(test):
 	"""
-	# - &library.Phrase.rstripcells
-	# - &library.Phrase.rfindcell
+	# - &module.Phrase.rstripcells
+	# - &module.Phrase.rfindcell
 	"""
 
 	seq = [("謝了春",), ("check",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	test/IndexError ^ (lambda: ph.rstripcells(5)[1][1] == "")
 	test/ph.rstripcells(5)[0][1] == "謝了春"
 	test/ph.rstripcells(6)[0][1] == "謝了*"
@@ -434,20 +434,20 @@ def test_Phrase_rstripcells_boundary(test):
 	test/IndexError ^ (lambda: ph.rstripcells(7).__getitem__(1))
 
 	iseq = [("check",), ("謝了春",)]
-	ph = library.Phrase.construct(iseq)
+	ph = module.Phrase.construct(iseq)
 	test/IndexError ^ (lambda: ph.rstripcells(6)[1][1] == "")
 	test/ph.rstripcells(4)[-1][1] == "謝"
 	test/ph.rstripcells(5)[-1][1] == "*"
 
 def test_Phrase_lstripcells_zerowidth(test):
 	"""
-	# - &library.Phrase.lstripcells
-	# - &library.Phrase.lfindcell
+	# - &module.Phrase.lstripcells
+	# - &module.Phrase.lfindcell
 	"""
 
 	# Zero width space might be greater than zero cells.
 	seq = [("Leading, C\u0353, Following",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	test/ph.lstripcells(len("Leading, "))[0][1] == "C\u0353, Following"
 
 	# lfindcell needs to be greedy and consume any zero width characters.
@@ -455,7 +455,7 @@ def test_Phrase_lstripcells_zerowidth(test):
 
 	# Two cells
 	seq = [("謝了春\u0353, Following",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	test/ph.lstripcells(6)[0][1] == ", Following"
 
 	noted = []
@@ -467,14 +467,14 @@ def test_Phrase_lstripcells_zerowidth(test):
 
 def test_Phrase_rstripcells_zerowidth(test):
 	"""
-	# - &library.Phrase.rstripcells
-	# - &library.Phrase.rfindcell
+	# - &module.Phrase.rstripcells
+	# - &module.Phrase.rfindcell
 
 	# Failure is likely due to a malfunctioning &wcswidth implementation.
 	"""
 
 	seq = [("Leading, C\u0353, Following",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	test/ph.rstripcells(len("Following"))[0][1] == "Leading, C\u0353, "
 	test/ph.rstripcells(len(", Following"))[0][1] == "Leading, C\u0353"
 
@@ -482,7 +482,7 @@ def test_Phrase_rstripcells_zerowidth(test):
 	test/ph.rstripcells(len("x, Following"))[0][1] == "Leading, "
 
 	seq = [("謝了春\u0353, Following",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	n = len(", Following")
 	test/ph.rstripcells(n)[0][1] == "謝了春\u0353"
 
@@ -494,7 +494,7 @@ def test_Phrase_rstripcells_zerowidth(test):
 	test/noted == ["春\u0353"]
 
 def test_Phrase_lstripcells_noop(test):
-	ph = library.Phrase.construct([
+	ph = module.Phrase.construct([
 		("Simple", None, None, notraits),
 		(" ", None, None, notraits),
 		("Phrase.", None, None, notraits),
@@ -504,7 +504,7 @@ def test_Phrase_lstripcells_noop(test):
 	test/ph.lstripcells(-128) == ph
 
 def test_Phrase_rstripcells_noop(test):
-	ph = library.Phrase.construct([
+	ph = module.Phrase.construct([
 		("Simple", None, None, notraits),
 		(" ", None, None, notraits),
 		("Phrase.", None, None, notraits),
@@ -515,12 +515,12 @@ def test_Phrase_rstripcells_noop(test):
 
 def test_Phrase_translate_ascii(test):
 	"""
-	# - &library.Phrase.translate
+	# - &module.Phrase.translate
 	"""
 
 	# one-to-one mapping
 	seq = [("first",), ("second",), (" and some more",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 
 	for x in range(6):
 		test/x == list(ph.translate(x))[0]
@@ -529,29 +529,29 @@ def test_Phrase_translate_ascii(test):
 
 def test_Phrase_translate_empty(test):
 	"""
-	# - &library.Phrase.translate
+	# - &module.Phrase.translate
 	"""
 
 	# empty line
 	seq = [("",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	xo, = ph.translate(0)
 	test/xo == 0
 	test/list(ph.translate(1)) == [None]
 
 def test_Phrase_translate_wide(test):
 	"""
-	# - &library.Phrase.translate
+	# - &module.Phrase.translate
 	"""
 
 	seq = [("謝了春謝了春",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 	for x in range(6):
 		xo, = ph.translate(x)
 		test/xo == (x*2)
 
 	seq = [("f謝o了春謝了春",)]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 
 	xo, = ph.translate(2)
 	test/xo == 3
@@ -562,27 +562,27 @@ def test_Phrase_translate_wide(test):
 
 def test_Phrase_combine(test):
 	"""
-	# - &library.Phrase.combine
+	# - &module.Phrase.combine
 	"""
 
 	# Zero attributes.
-	p = library.Phrase.construct([("prefix",), ("-",), ("suffix",)])
-	c = library.Phrase.construct([("prefix-suffix",)])
+	p = module.Phrase.construct([("prefix",), ("-",), ("suffix",)])
+	c = module.Phrase.construct([("prefix-suffix",)])
 
 	test/p.combine() == c
 
 def test_Phrase_subphrase(test):
 	"""
-	# - &library.Phrase.subphrase
+	# - &module.Phrase.subphrase
 	"""
 	seq = [
-		("def", 0x0000FF, None, library.Traits(0)),
+		("def", 0x0000FF, None, module.Traits(0)),
 		(" ", None, None, None),
-		("function", None, None, library.Traits(0)),
-		("(arguments)", None, None, library.Traits(0)),
-		("-> tuple:", None, None, library.Traits(0)),
+		("function", None, None, module.Traits(0)),
+		("(arguments)", None, None, module.Traits(0)),
+		("-> tuple:", None, None, module.Traits(0)),
 	]
-	ph = library.Phrase.construct(seq)
+	ph = module.Phrase.construct(seq)
 
 	# First edge
 	test/list(ph.subphrase(*ph.findcells(0, 0))) == [(0, "", ph[0][2])]
@@ -593,10 +593,10 @@ def test_Phrase_subphrase(test):
 
 def test_Phrase_join(test):
 	"""
-	# - &library.Phrase.join
+	# - &module.Phrase.join
 	"""
-	normal = library.RenderParameters((0xFFFFFF, 0x000000, library.Traits(0)))
-	tab = library.Phrase(normal.form("<TAB>"))
+	normal = module.RenderParameters((0xFFFFFF, 0x000000, module.Traits(0)))
+	tab = module.Phrase(normal.form("<TAB>"))
 
 	# Three elements.
 	r = tab.join([
@@ -630,23 +630,23 @@ def test_Phrase_join(test):
 
 def test_Constructors(test):
 	"""
-	# - &library.RenderParameters.form
-	# - &library.Phrase.from_words
+	# - &module.RenderParameters.form
+	# - &module.Phrase.from_words
 	"""
-	rp1 = library.RenderParameters((0xFFFFFF, 0x000000, library.Traits(0)))
-	rp2 = library.RenderParameters((-1024, 0x000000, library.Traits(0)))
+	rp1 = module.RenderParameters((0xFFFFFF, 0x000000, module.Traits(0)))
+	rp2 = module.RenderParameters((-1024, 0x000000, module.Traits(0)))
 	test/len(list(rp1.form("first", "second"))) == 2
 
-	ph = library.Phrase.from_words(
+	ph = module.Phrase.from_words(
 		rp1.form("Former", " ", "sentence", ". "),
 		rp2.form("Latter sentence", "."),
 	)
 	test/"".join([x[1] for x in ph]) == "Former sentence. Latter sentence."
 
 	# Check units usage.
-	ph = library.Phrase.from_words(
-		rp1.form("Former", " ", "sentence", library.Units(("->",))),
-		rp2.form("Latter sentence", library.Units((";",))),
+	ph = module.Phrase.from_words(
+		rp1.form("Former", " ", "sentence", module.Units(("->",))),
+		rp2.form("Latter sentence", module.Units((";",))),
 	)
 	test/"".join([str(x[1]) for x in ph]) == "Former sentence->Latter sentence;"
 

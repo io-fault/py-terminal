@@ -3,22 +3,22 @@
 # raised from good parameters.
 """
 from .. import core
-from .. import matrix as library
+from .. import matrix as module
 
 def test_Type(test):
 	"""
-	# - &library.Type
+	# - &module.Type
 	"""
-	dt = library.Type('utf-8')
+	dt = module.Type('utf-8')
 	test/dt.encoding == 'utf-8'
 	test/dt.csi(b'm', b'0') == b"\x1b[0m"
-	test/LookupError ^ (lambda: library.Type("no-such-encoding"))
+	test/LookupError ^ (lambda: module.Type("no-such-encoding"))
 
 def test_Type_transition(test):
 	"""
-	# - &library.Type.transition_render_parameters
+	# - &module.Type.transition_render_parameters
 	"""
-	t = library.Type('utf-8')
+	t = module.Type('utf-8')
 	transition = t.transition_render_parameters
 	notraits = core.NoTraits
 
@@ -48,11 +48,11 @@ def test_Type_transition(test):
 
 def test_Context_render_transitions(test):
 	"""
-	# - &library.Context.render
+	# - &module.Context.render
 
-	# Validates that &library.Context.transition is properly applied.
+	# Validates that &module.Context.transition is properly applied.
 	"""
-	s = library.Screen()
+	s = module.Screen()
 
 	# Underline to bold.
 	ph = core.Phrase.construct([
@@ -83,14 +83,14 @@ def test_Context_render_transitions(test):
 
 def test_Context_stored_colors(test):
 	"""
-	# - &library.Context.context_set_text_color
-	# - &library.Context.context_set_cell_color
-	# - &library.Context.set_text_color
-	# - &library.Context.set_cell_color
-	# - &library.Context.reset_colors
-	# - &library.Context.render
+	# - &module.Context.context_set_text_color
+	# - &module.Context.context_set_cell_color
+	# - &module.Context.set_text_color
+	# - &module.Context.set_cell_color
+	# - &module.Context.reset_colors
+	# - &module.Context.render
 	"""
-	s = library.Screen()
+	s = module.Screen()
 	test/s.reset_colors() == b'\x1b[39;49m'
 
 	test/s.context_set_cell_color(-513)
@@ -108,11 +108,11 @@ def test_Context_stored_colors(test):
 
 def test_Screen_methods(test):
 	"""
-	# - &library.Screen
+	# - &module.Screen
 
 	# Check sanity of the additional screen methods.
 	"""
-	S = library.Screen() # Explicitly utf-8.
+	S = module.Screen() # Explicitly utf-8.
 
 	b"-test-title" in test/S.set_window_title_text("-test-title")
 	b'!p' in test/S.reset()
@@ -129,11 +129,11 @@ def test_Screen_methods(test):
 
 def test_Context_seek(test):
 	"""
-	# - &library.Context.seek
-	# - &library.Context.tell
-	# - &library.Context.seek_last
+	# - &module.Context.seek
+	# - &module.Context.tell
+	# - &module.Context.seek_last
 	"""
-	tctx = library.Context()
+	tctx = module.Context()
 	tctx.context_set_position((32,32))
 	tctx.context_set_dimensions((16, 16))
 
@@ -144,20 +144,20 @@ def test_Context_seek(test):
 
 def test_Context_properties(test):
 	"""
-	# - &library.Context
+	# - &module.Context
 	"""
-	ctx = library.Context()
+	ctx = module.Context()
 
-	test.isinstance(ctx.terminal_type, library.Type)
+	test.isinstance(ctx.terminal_type, module.Type)
 	test/ctx.width == None
 	test/ctx.height == None
 	test/ctx.point == (None, None)
 
 def test_Context_draw_words(test):
 	"""
-	# - &library.Context.draw_words
+	# - &module.Context.draw_words
 	"""
-	ctx = library.Context()
+	ctx = module.Context()
 	b'test' in test/ctx.draw_words("test")
 
 if __name__ == '__main__':
