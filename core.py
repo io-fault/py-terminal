@@ -294,7 +294,7 @@ class RenderParameters(tuple):
 		return None
 
 	@classmethod
-	def from_colors(Class, textcolor, cellcolor) -> 'RenderParameters':
+	def from_colors(Class, textcolor, cellcolor):
 		return Class((textcolor, cellcolor, NoTraits))
 
 	def set(self, traits:Traits) -> 'RenderParameters':
@@ -438,7 +438,7 @@ class Phrase(tuple):
 		return Class.default(" ")
 
 	@classmethod
-	def from_words(Class, *words:Words, ichain=itertools.chain.from_iterable) -> 'Phrase':
+	def from_words(Class, *words:Words, ichain=itertools.chain.from_iterable):
 		return Class(ichain(words))
 
 	def join(self, phrases, zip=zip, repeat=itertools.repeat, ichain=itertools.chain.from_iterable):
@@ -458,7 +458,7 @@ class Phrase(tuple):
 			specifications:typing.Sequence[object],
 			RenderParametersConstructor=RenderParameters,
 			cells=text.cells, str=str
-		) -> 'Phrase':
+		):
 		"""
 		# Create a &Phrase instance from the &specifications designating
 		# the text of the words and their properties.
@@ -474,7 +474,7 @@ class Phrase(tuple):
 
 		return super().__new__(Class, specs)
 
-	def combine(self) -> 'Phrase':
+	def combine(self):
 		"""
 		# Combine word specifications with identical attributes(styles).
 		# Returns a new &Phrase instance with any redundant word attributes eliminated.
