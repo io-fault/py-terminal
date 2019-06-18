@@ -1,16 +1,58 @@
 """
-# Dictionary for terminal color identifers and 24-bit code mapping functions for xterm-256 colors.
+# Dictionary for terminal color identifiers and 24-bit code mapping functions for xterm-256 colors.
 
 # The &colors mapping provides named access to the terminal's configured colors; the
-# often available sixteen colors and various aliases. The values of this dictionary
-# are numeric identifiers usable with &.core.RenderParameters which recognizes positive
+# often available sixteen colors (tty-16) and various aliases for some xterm-256 indexes. The values
+# of this dictionary are numeric identifiers usable with &.core.RenderParameters which recognizes positive
 # numbers as 24-bit RGB values and negative numbers as a contrived index selecting
-# colors from commonly used palettes such as sixteen, xterm-256, and the default text and cell color.
+# colors from common palettes such as tty-16, xterm-256, and the default text and cell color.
+
+# [ Common Colors ]
+
+# The default cell and text color can be addressed in &colors using `'terminal-default'`. This entry
+# should not be changed as it is the only color index with two color values: the foreground color and
+# the background color.
+
+# Most of the common color names refer to the tty-16 palette available in most terminals.
+# By default, these colors map to normal (non-bright) colors in the dictionary.
+# Bright colors from tty-16 must use the qualified form with the `'absolute-'` prefix,
+# &[Relative and Absolute Colors].
+
+# - `'black'`
+# - `'red'`
+# - `'green'`
+# - `'yellow'`
+# - `'blue'`
+# - `'magenta'`
+# - `'cyan'`
+# - `'white'`
+
+# As an extension, some bindings to the xterm-256 colors palette are provided as well:
+
+# - `'gray'`
+# - `'violet'`
+# - `'teal'`
+# - `'pink'`
+# - `'orange'`
+# - `'purple'`
+
+# Example usage being:
+
+#!/pl/python
+	from fault.terminal import palette
+	from fault.terminal import core
+	fg = palette.colors['blue']
+	bg = palette.colors['terminal-default']
+	trp_blue_text = core.RenderParameters.from_colors(fg, bg)
+
+# However, &.core.RenderParameters is normally accessed through matrix contexts as opposed
+# to directly from the &.core module. This example is only meant to clarify the location
+# of the color indexes and the type used to hold them.
 
 # [ Relative and Absolute Colors ]
 
-# The &colors dictionary uses project local terminology to describe the sixteen colors palette.
-# The color names are intended to slightly generalize the concept of the color at a given index.
+# The &colors dictionary also uses project local terminology to describe the tty-16 palette.
+# The color names are intended to slightly generalize the concept of the color as a color slot.
 # Notably, this is intended to encourage the expectation that a terminal has been customized,
 # potentially, significantly.
 
@@ -19,21 +61,17 @@
 # For example, normal red is identified using `'relative-red'` and bright red is identified using
 # `'absolute-red'`.
 
-# These qualifications are used to make a distinction between a *configured* color and
-# an actual color or a color chosen from the xterm-256 palette. Potentially, this mapping may
-# be customized and given 24-bit RGB color entries in addition to the absolute and relative defaults.
+# These qualifications are used to make a distinction between a color slot and
+# an actual color or a color chosen from the xterm-256 palette. While these entries can be
+# modified, it is usually better to use and override unqualified color names.
 
-# [ Alternate Colors ]
+# [ Other Color Slots ]
 
 # In addition to relative and absolute names referring to most of the sixteen colors available,
-# few are renamed entirely in order to make use of their color slot.
+# few are renamed entirely in order to encourage customization of the tty-16 slots.
 
-# /`'terminal-default'`/
-	# The default text or default cell color. The color used by the terminal when SGR is reset.
-# /`'application-border'`/
-	# Alias for (id)`background-adjacent`. This is intended to be used for drawing borders.
 # /`'background-limit'`/
-	# Usually identified as black. This is intended to refer to a color
+	# Usually identified as normal black. This is intended to refer to a color
 	# that is darker or lighter than the actual background.
 	# Locally, this is used for inverted text areas.
 # /`'foreground-adjacent'`/
@@ -44,12 +82,15 @@
 # /`'foreground-limit'`/
 	# Usually identified as bright white. This is intended to refer to a color
 	# that is lighter or darker than the actual foreground.
+# /`'application-border'`/
+	# Alias for (id)`background-adjacent`. This is intended to be used as a default for drawing borders.
 
-# [ Customization ]
+# The color slots should be configured to produce a progression with limit and default being
+# close in value: (illustration)`limit -> default -> adjacent`.
 
-# The &colors mapping is provided for named access to identifiers *and* for low-level customization.
-# Normally, applications should only be referring to this mapping once: when a &.core.RenderParameters
-# instance is first initialized and associated with an abstract theme unit.
+# Where limit is the (relative) maximum or minimum color value, and default is the
+# terminal-default cell or text color. While limit and default should be close in value, adjacents
+# should be a fairly significant step away from default.
 """
 import functools
 
@@ -57,38 +98,67 @@ import functools
 # The numeric identifiers are mapped to terminal escape codes in &.matrix.
 colors = {
 	'terminal-default': -1024, # Identifies default cell and text color.
-	'application-border': -504, # Alias for background-adjacent.
+	'application-border': -236,
 
+	# Common Names; bound to normal tty-16 colors palette by default.
+	'black': -512,
+	'red': -513,
+	'green': -514,
+	'yellow': -515,
+	'blue': -516,
+	'magenta': -517,
+	'cyan': -518,
+	'white': -519,
+
+	# Extensions using xterm-256
+	'gray': -248,
+	'violet': -141,
+	'teal': -24, # A little dark, but there are no other options in xterm-256.
+	'pink': -212,
+	'orange': -209,
+	'purple': -54,
+
+	# Hard references to the sixteen color palette.
 	'background-limit': -512, # Usually 0x000000; a color relatively beyond the terminal default cell.
 
-	'relative-red': -511,
-	'relative-green': -510,
-	'relative-yellow': -509,
-	'relative-blue': -508,
-	'relative-magenta': -507,
-	'relative-cyan': -506,
+	'relative-red': -513,
+	'relative-green': -514,
+	'relative-yellow': -515,
+	'relative-blue': -516,
+	'relative-magenta': -517,
+	'relative-cyan': -518,
 
-	'foreground-adjacent': -505, # The "white" slot.
-	'background-adjacent': -504, # The "bright black" slot.
+	'foreground-adjacent': -519, # The "white" slot.
+	'background-adjacent': -520, # The "bright black" slot.
 
 	# Brights
-	'absolute-red': -503,
-	'absolute-green': -502,
-	'absolute-yellow': -501,
-	'absolute-blue': -500,
-	'absolute-magenta': -499,
-	'absolute-cyan': -498,
+	'absolute-red': -521,
+	'absolute-green': -522,
+	'absolute-yellow': -523,
+	'absolute-blue': -524,
+	'absolute-magenta': -525,
+	'absolute-cyan': -526,
 
-	'foreground-limit': -497, # Usually 0xFFFFFF; a color relatively beyond the terminal default text.
+	'foreground-limit': -527, # Usually 0xFFFFFF; a color relatively beyond the terminal default text.
 }
 
-local = {
-	# Recommended overrides.
-	'relative-violet': -507, # Uses Magenta slot.
-	'relative-pink': -499, # Uses Bright Magenta slot.
-	'relative-teal': -506, # Uses Cyan slot.
-	'relative-orange': -498, # Uses Bright Cyan slot.
+remapped = {
+	'application-border': -520, # background-adjacent.
+	'violet': -517, # tty-16 magenta slot
+	'pink': -525, # tty-16 bright magenta slot
+	'teal': -518, # tty-16 cyan slot
+	'orange': -526, # tty-16 bright cyan slot
+
+	# Rewrite local bindings to xterm-256 entries to
+	# maintain the possible expectation of these referring to exact colors.
+	'cyan': -52,
+	'magenta': -200,
+	'white': -232,
+	'black': -1,
 }
+
+# Temporary; environment variable should be used to select whether or not it should be applied.
+colors.update(remapped)
 
 def gray_palette(index):
 	"""
