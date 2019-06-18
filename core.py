@@ -294,10 +294,10 @@ class RenderParameters(tuple):
 		return None
 
 	@classmethod
-	def from_colors(Class, textcolor, cellcolor):
+	def from_colors(Class, textcolor:int, cellcolor:int):
 		return Class((textcolor, cellcolor, NoTraits))
 
-	def set(self, traits:Traits) -> 'RenderParameters':
+	def set(self, traits:Traits):
 		"""
 		# Create a new instance with the given &traits added to
 		# the traits present in &self.
@@ -306,7 +306,7 @@ class RenderParameters(tuple):
 			self[0], self[1], traits | self[2], *self[3:]
 		))
 
-	def clear(self, traits:Traits) -> 'RenderParameters':
+	def clear(self, traits:Traits):
 		"""
 		# Create a new instance with the given &traits removed
 		# from the traits present in &self.
