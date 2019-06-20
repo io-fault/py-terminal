@@ -110,13 +110,20 @@ colors = {
 	'cyan': -518,
 	'white': -519,
 
-	# Extensions using xterm-256
+	# Extensions using xterm-256; intentionally a modest list.
 	'gray': -248,
 	'violet': -141,
-	'teal': -24, # A little dark, but there are no other options in xterm-256.
+	'teal': -24, # A little dark, but there are no other options aside from truecolor.
 	'pink': -212,
 	'orange': -209,
 	'purple': -54,
+	'chartreuse': -119,
+	'olive': -101,
+	'indigo': -55,
+	'maroon': -89,
+	'coral': -210,
+	'beige': -231,
+	'tan': -182,
 
 	# Hard references to the sixteen color palette.
 	'background-limit': -512, # Usually 0x000000; a color relatively beyond the terminal default cell.
