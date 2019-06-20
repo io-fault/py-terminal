@@ -10,8 +10,8 @@
 # [ Common Colors ]
 
 # The default cell and text color can be addressed in &colors using `'terminal-default'`. This entry
-# should not be changed as it is the only color index with two color values: the foreground color and
-# the background color.
+# should not be changed as it is the only color index that can represent two color values: the
+# foreground color and the background color.
 
 # Most of the common color names refer to the tty-16 palette available in most terminals.
 # By default, these colors map to normal (non-bright) colors in the dictionary.
@@ -27,7 +27,7 @@
 # - `'cyan'`
 # - `'white'`
 
-# As an extension, some bindings to the xterm-256 colors palette are provided as well:
+# As an extension, some xterm-256 approximations are bound as well.
 
 # - `'gray'`
 # - `'violet'`
@@ -35,6 +35,14 @@
 # - `'pink'`
 # - `'orange'`
 # - `'purple'`
+# - `'chartreuse'`
+# - `'forest'`
+# - `'olive'`
+# - `'indigo'`
+# - `'maroon'`
+# - `'coral'`
+# - `'beige'`
+# - `'tan'`
 
 # Example usage being:
 
@@ -43,18 +51,17 @@
 	from fault.terminal import core
 	fg = palette.colors['blue']
 	bg = palette.colors['terminal-default']
-	trp_blue_text = core.RenderParameters.from_colors(fg, bg)
+	trp_blue_text = core.RenderParameters.from_colors(textcolor=fg, cellcolor=bg)
 
 # However, &.core.RenderParameters is normally accessed through matrix contexts as opposed
 # to directly from the &.core module. This example is only meant to clarify the location
-# of the color indexes and the type used to hold them.
+# of the color indexes.
 
 # [ Relative and Absolute Colors ]
 
-# The &colors dictionary also uses project local terminology to describe the tty-16 palette.
-# The color names are intended to slightly generalize the concept of the color as a color slot.
-# Notably, this is intended to encourage the expectation that a terminal has been customized,
-# potentially, significantly.
+# While some tty-16 indexes are accessible using normal color names in &colors, the numeric
+# indexes are also bound to slot names allowing access regardless of whether or not the unqualified
+# color names are rebound to true colors or xterm-256 indexes.
 
 # Most bright colors are called "absolute" and regular colors are called "relative". Absolute
 # is used as an exaggeration meaning to imply emphasis, and relative means relative to the theme.
@@ -68,7 +75,7 @@
 # [ Other Color Slots ]
 
 # In addition to relative and absolute names referring to most of the sixteen colors available,
-# few are renamed entirely in order to encourage customization of the tty-16 slots.
+# few are renamed entirely in order to encourage certain customization of the tty-16 slots.
 
 # /`'background-limit'`/
 	# Usually identified as normal black. This is intended to refer to a color
@@ -118,6 +125,7 @@ colors = {
 	'orange': -209,
 	'purple': -54,
 	'chartreuse': -119,
+	'forest': -29,
 	'olive': -101,
 	'indigo': -55,
 	'maroon': -89,
