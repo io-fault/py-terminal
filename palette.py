@@ -4,7 +4,7 @@
 # The &colors mapping provides named access to the terminal's configured colors; the
 # often available sixteen colors (tty-16) and various aliases for some xterm-256 indexes. The values
 # of this dictionary are numeric identifiers usable with &.core.RenderParameters which recognizes positive
-# numbers as 24-bit RGB values and negative numbers as a contrived index selecting
+# integers as 24-bit RGB values and negative integers as a contrived index selecting
 # colors from common palettes such as tty-16, xterm-256, and the default text and cell color.
 
 # [ Common Colors ]
@@ -59,23 +59,22 @@
 
 # [ Relative and Absolute Colors ]
 
-# While some tty-16 indexes are accessible using normal color names in &colors, the numeric
+# While some tty-16 indexes are accessible using normal color names in &colors, the integer
 # indexes are also bound to slot names allowing access regardless of whether or not the unqualified
-# color names are rebound to true colors or xterm-256 indexes.
+# color names are rebound to true color values or xterm-256 indexes.
 
 # Most bright colors are called "absolute" and regular colors are called "relative". Absolute
 # is used as an exaggeration meaning to imply emphasis, and relative means relative to the theme.
 # For example, normal red is identified using `'relative-red'` and bright red is identified using
 # `'absolute-red'`.
 
-# These qualifications are used to make a distinction between a color slot and
-# an actual color or a color chosen from the xterm-256 palette. While these entries can be
-# modified, it is usually better to use and override unqualified color names.
+# Thes distinction is made to allow consistent access to the tty-16 palette regardless of any
+# changes made to the unqualified entries in the dictionary.
 
 # [ Other Color Slots ]
 
-# In addition to relative and absolute names referring to most of the sixteen colors available,
-# few are renamed entirely in order to encourage certain customization of the tty-16 slots.
+# In addition to relative and absolute names referring to most of tty-16,
+# some slots are renamed entirely in order to encourage certain terminal customizations.
 
 # /`'background-limit'`/
 	# Usually identified as normal black. This is intended to refer to a color
@@ -91,13 +90,6 @@
 	# that is lighter or darker than the actual foreground.
 # /`'application-border'`/
 	# Alias for (id)`background-adjacent`. This is intended to be used as a default for drawing borders.
-
-# The color slots should be configured to produce a progression with limit and default being
-# close in value: (illustration)`limit -> default -> adjacent`.
-
-# Where limit is the (relative) maximum or minimum color value, and default is the
-# terminal-default cell or text color. While limit and default should be close in value, adjacents
-# should be a fairly significant step away from default.
 """
 import functools
 
@@ -119,23 +111,26 @@ colors = {
 
 	# Extensions using xterm-256; intentionally a modest list.
 	'gray': -248,
-	'violet': -141,
-	'teal': -24, # A little dark, but there are no other options aside from truecolor.
-	'pink': -212,
-	'orange': -209,
-	'purple': -54,
+	'olive': -101,
 	'chartreuse': -119,
 	'forest': -29,
-	'olive': -101,
-	'indigo': -55,
 	'maroon': -89,
+	'orange': -209,
+	'pink': -212,
 	'coral': -210,
 	'beige': -231,
 	'tan': -182,
+	'sky': -117,
+	'teal': -24, # A little dark, but there are no other options aside from truecolor.
+	'midnight': -18,
+	'indigo': -55,
+	'purple': -54,
+	'violet': -141,
 
 	# Hard references to the sixteen color palette.
-	'background-limit': -512, # Usually 0x000000; a color relatively beyond the terminal default cell.
+	'background-limit': -512, # The "black" slot.
 
+	# Normal
 	'relative-red': -513,
 	'relative-green': -514,
 	'relative-yellow': -515,
@@ -154,7 +149,7 @@ colors = {
 	'absolute-magenta': -525,
 	'absolute-cyan': -526,
 
-	'foreground-limit': -527, # Usually 0xFFFFFF; a color relatively beyond the terminal default text.
+	'foreground-limit': -527, # The "bright white" slot.
 }
 
 remapped = {
