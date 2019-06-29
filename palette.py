@@ -95,6 +95,8 @@ import functools
 
 # Identifiers for the configured sixteen colors.
 # The numeric identifiers are mapped to terminal escape codes in &.matrix.
+# -512 to -527 inclusive represent tty-16.
+# -1 to -256 inclusive represent xterm-256
 colors = {
 	'terminal-default': -1024, # Identifies default cell and text color.
 	'application-border': -236,
@@ -227,7 +229,7 @@ def color_code(color):
 	# Convert the given 24-bit RGB color into a terminal color code.
 
 	# If the color does not have an exact match in the palette, the returned code may
-	# not be a reaonable substitute for the given color.
+	# not be a reasonable substitute for the given color.
 	"""
 	r, g, b = (color & 0xFF0000) >> 16, (color & 0x00FF00) >> 8, (color & 0xFF)
 	ri = (r - 55) // 40
