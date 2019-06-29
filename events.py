@@ -194,8 +194,7 @@ def dispatch_string(region:str):
 	"""
 	# Parse OSC returning the intermediates, parameters, and any following text.
 	"""
-	r, action = region.split('\x07', 1)
-	return action, r
+	return dispatch_sequence(region)
 
 type_switch = {
 	'[': ('csi', dispatch_sequence),
@@ -320,7 +319,7 @@ def process_region_data(escape, region, Meta=Meta, Zero=Zero):
 			return
 		elif action[-1] == None:
 			# Incomplete sequence.
-			yield Character(('ignored-escape-sequence', None, None, None))
+			yield Character(('ignored-escape-sequence', region, None, None))
 			return
 
 	# Literal Data
