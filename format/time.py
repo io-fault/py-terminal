@@ -122,12 +122,13 @@ def f_timestamp(relation, timestamp, precision='microsecond'):
 
 if __name__ == '__main__':
 	import sys
-	from ...time import library as t
+	from ...time import types as t
+	from ...time import sysclock
 	from .. import matrix
 	screen = matrix.Screen()
 	values = sys.argv[1:] # ri, path, ts, dir: libformat dir /
 
-	now = t.now()
+	now = sysclock.now()
 	for x in values:
 		ts = t.Timestamp.of(iso=x)
 		ph = screen.Phrase.construct(x+(None,None) for x in f_timestamp(now, ts))
