@@ -816,13 +816,15 @@ class Screen(Context):
 		"""
 		# Emulator level cursor storage.
 		"""
-		return self.terminal_type.esc(b'7') # Also, CSI s, but maybe less portable.
+		return self._csi(b's')
+		# VT: return self.terminal_type.esc(b'7')
 
 	def restore_cursor_location(self):
 		"""
 		# Restore a previously stored cursor location.
 		"""
-		return self.terminal_type.esc(b'8')
+		return self._csi(b'r')
+		# VT: return self.terminal_type.esc(b'8')
 
 	def scroll_up(self, count):
 		"""
