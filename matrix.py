@@ -107,7 +107,7 @@ class Type(object):
 			return b''
 		return self._csi_init + self._join(parts) + terminator
 
-	def wm(self, *parts:bytes):
+	def wm(self, *parts:int):
 		"""
 		# Window Manipulations.
 		"""
