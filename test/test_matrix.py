@@ -122,8 +122,8 @@ def test_Screen_methods(test):
 	b'1' in test/sr
 	b'2' in test/sr
 
-	b'7' in test/S.store_cursor_location()
-	b'8' in test/S.restore_cursor_location()
+	b's' in test/S.store_cursor_location()
+	b'r' in test/S.restore_cursor_location()
 	b'8' in test/S.scroll_up(8)
 	b'8' in test/S.scroll_down(8)
 
