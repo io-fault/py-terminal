@@ -14,7 +14,7 @@ route_colors = {
 
 	'directory': 0x0087ff,
 	'executable': 0x008700,
-	'file': 0xc6c6c6,
+	'data': 0xc6c6c6,
 
 	'dot-file': 0x808080,
 	'file-not-found': 0xaf0000,
@@ -43,7 +43,7 @@ def route_is_link(route, islink=os.path.islink):
 
 def _f_route_factor_type(route, ia_link=route_is_link):
 	idotpy = route / '__init__.py'
-	file_exists = idotpy.exists()
+	file_exists = idotpy.fs_type() != 'void'
 	path = str(idotpy)
 	islink = ia_link(path)
 	if islink:
@@ -87,10 +87,10 @@ def f_route_identifier(route, warning=False):
 	if warning:
 		t = 'warning'
 	else:
-		t = route.type()
+		t = route.fs_type()
 		rid = route.identifier
-		if t == 'file':
-			if route.executable():
+		if t == 'data':
+			if route.fs_executable():
 				t = 'executable'
 			elif rid.endswith('.py'):
 				t = 'text/plain;pl=python'
@@ -98,7 +98,7 @@ def f_route_identifier(route, warning=False):
 				t = 'text/plain;sf=fault.txt'
 			elif rid[:1] == ".":
 				t = 'dot-file'
-		elif t is None:
+		elif t == 'void':
 			t = 'file-not-found'
 
 	return [(route.identifier, route_colors[t])]
