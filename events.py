@@ -363,7 +363,6 @@ def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print,
 			continue
 
 		events.extend(ground(strings[0]))
-		assert events == [] if data[0:1] == escape else events != []
 
 		# If the read data length is less than the read size,
 		# the parser should normally presume to finish.
