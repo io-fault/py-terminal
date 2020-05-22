@@ -3,20 +3,15 @@
 		&<http://if.fault.io/project/information>
 
 /identifier/
-	`http://fault.io/python/terminal`
+	&<http://fault.io/python/terminal>
+/icon/
+	- (emoji)`🖥`
 /name/
 	`terminal`
 /abstract/
 	Terminal control interfaces
-/icon/
-	- (emoji)`🖥`
 
-/versioning/
-	continuous
-/status/
-	volatile
-
-/controller/
+/authority/
 	`fault.io`
 /contact/
-	`mailto:critical@fault.io`
+	&<http://fault.io/critical>
