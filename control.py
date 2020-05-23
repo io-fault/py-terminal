@@ -22,6 +22,8 @@
 
 # /line-wrap/
 	# Control line wrapping.
+# /origin-mode/
+	# Control the home cursor position to be absolute or scrolling region relative.
 # /margin-bell/
 	# Control the margin bell.
 # /cursor-visible/
@@ -75,6 +77,7 @@ from . import matrix
 private_mode_options = {
 	# CSI ? {0} [lhsr]
 	'alternate-screen': 1049,
+	'origin-mode': 6,
 	'line-wrap': 7,
 	'margin-bell': 44,
 
@@ -131,6 +134,7 @@ ctypes = {
 			'focus-events',
 			'bracket-paste-mode',
 		}, {
+			'origin-mode',
 			'line-wrap',
 			'margin-bell',
 			'cursor-visible',
@@ -143,6 +147,7 @@ ctypes = {
 			'cursor-visible',
 			# No margin bell assignment; force outer program to re-enable.
 		}, {
+			'origin-mode',
 			'mouse-extended-protocol',
 			'mouse-events',
 			'mouse-drag',
