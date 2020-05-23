@@ -39,6 +39,7 @@ class Type(object):
 	_st = _escape_character = b'\\' # String Terminator
 	_wm = b't'
 
+	# Private Modes
 	_pm_set = b'h'
 	_pm_reset = b'l'
 	_pm_save = b's'
@@ -823,7 +824,7 @@ class Screen(Context):
 		"""
 		# Restore a previously stored cursor location.
 		"""
-		return self._csi(b'r')
+		return self._csi(b'u')
 		# VT: return self.terminal_type.esc(b'8')
 
 	def scroll_up(self, count):
