@@ -46,6 +46,10 @@ class Type(object):
 	_pm_restore = b'r'
 	_pm_init = _csi_init + b'?'
 
+	# Synchronize with &.control
+	_pm_origin = 6
+	_pm_screen = 1049
+
 	_reset_text_attributes = b'0'
 
 	# Support for SGR color.
@@ -813,6 +817,25 @@ class Screen(Context):
 		"""
 		return self._csi(b'r')
 
+	def open_scrolling_region(self, top:int, bottom:int):
+		"""
+		# Set the scrolling region, enter it, and seek the bottom.
+		# Subsequent &exit_scrolling_region and &enter_scrolling_region
+		# should be use to maintain the SR's state.
+		"""
+		sr = self.set_scrolling_region(top, bottom)
+		en = self.terminal_type.decset((self.terminal_type._pm_origin,))
+		return sr + en + self.seek_bottom()
+
+	def close_scrolling_region(self):
+		"""
+		# Save the screen buffer, reset the scrolling region, and restore the buffer.
+		# This preserves the screen's state after the transition.
+		"""
+		ttype = self.terminal_type
+		pm = ttype._pm_screen
+		return ttype.decset((pm,)) + self.reset_scrolling_region() + ttype.decrst((pm,))
+
 	def store_cursor_location(self):
 		"""
 		# Emulator level cursor storage.
@@ -838,6 +861,18 @@ class Screen(Context):
 		# Adjust the scroll region's view by scrolling down &count rows.
 		"""
 		return self._csi(b'T', self.encode(count))
+
+	def enter_scrolling_region(self):
+		"""
+		# Enter scrolling region; normal terminal output; restores cursor location.
+		"""
+		return self.terminal_type.decset((self.terminal_type._pm_origin,)) + self.restore_cursor_location()
+
+	def exit_scrolling_region(self):
+		"""
+		# Exit scrolling region; allow out of region printing; saves cursor location.
+		"""
+		return self.store_cursor_location() + self.terminal_type.decrst((self.terminal_type._pm_origin,))
 
 	def clear(self):
 		return self.reset_text() + self._csi(b'H') + self._csi(b'2J')
