@@ -825,7 +825,7 @@ class Screen(Context):
 		"""
 		sr = self.set_scrolling_region(top, bottom)
 		en = self.terminal_type.decset((self.terminal_type._pm_origin,))
-		return sr + en + self.seek_bottom()
+		return self.store_cursor_location() + sr + en + self.restore_cursor_location()
 
 	def close_scrolling_region(self):
 		"""
@@ -833,8 +833,9 @@ class Screen(Context):
 		# This preserves the screen's state after the transition.
 		"""
 		ttype = self.terminal_type
-		pm = ttype._pm_screen
-		return ttype.decset((pm,)) + self.reset_scrolling_region() + ttype.decrst((pm,))
+		return self.store_cursor_location() + ttype.decset((ttype._pm_screen,)) + \
+			self.reset_scrolling_region() + \
+			ttype.decrst((ttype._pm_screen,)) + self.enter_scrolling_region()
 
 	def store_cursor_location(self):
 		"""
