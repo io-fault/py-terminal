@@ -89,18 +89,28 @@ class Type(object):
 	def esc(self, string:bytes):
 		"""
 		# Escape prefixed string.
+
+		# [ Parameters ]
+		# /string/
+			# The bytes that will be prefixed with the configured escape.
 		"""
 		return self._escape_character + string
 
 	def csi(self, terminator:bytes, *parts:bytes):
 		"""
-		# Control Sequence Introducer
+		# Control Sequence Introducer constructor.
+
+		# [ Parameters ]
+		# /terminator/
+			# The end of the CSI; intermediates and termination character.
+		# /parts/
+			# The decimal parameter codes as ASCII encoded byte strings.
 		"""
 		return self._csi_init + self._join(parts) + terminator
 
 	def osc(self, *parts):
 		"""
-		# Operating System Command
+		# Operating System Command.
 		"""
 		return self._osc_init + self._join(parts) + self._st
 
@@ -160,37 +170,37 @@ class Type(object):
 		"""
 		# ICH, make room for &count characters. Maintains characters after the insertion.
 		"""
-		return self._csi(b'@', self.cached_integer_encode(count))
+		return self.csi(b'@', self.cached_integer_encode(count))
 
 	def delete_characters(self, count):
 		"""
 		# DCH, delete character moving remaining characters left.
 		"""
-		return self._csi(b'P', self.cached_integer_encode(count))
+		return self.csi(b'P', self.cached_integer_encode(count))
 
 	def insert_lines(self, count):
 		"""
 		# IL, make room for &count lines. Maintains lines after the insertion.
 		"""
-		return self._csi(b'L', self.cached_integer_encode(count))
+		return self.csi(b'L', self.cached_integer_encode(count))
 
 	def delete_lines(self, count):
 		"""
 		# DL, remove &count lines. Moves lines following the deleted up.
 		"""
-		return self._csi(b'M', self.cached_integer_encode(count))
+		return self.csi(b'M', self.cached_integer_encode(count))
 
 	def scroll_up(self, count):
 		"""
 		# SU, adjust the scrolling region's view by scrolling up &count lines.
 		"""
-		return self._csi(b'S', self.cached_integer_encode(count))
+		return self.csi(b'S', self.cached_integer_encode(count))
 
-	def scroll_up(self, count):
+	def scroll_down(self, count):
 		"""
 		# SD, adjust the scrolling region's view by scrolling down &count lines.
 		"""
-		return self._csi(b'T', self.cached_integer_encode(count))
+		return self.csi(b'T', self.cached_integer_encode(count))
 
 	def select_color(self, target, color_code,
 			targets_rgb={True:select_foreground_rgb,False:select_background_rgb},
@@ -283,7 +293,7 @@ class Type(object):
 		return self.csi_filter_empty(b'm', *self.select_transition(former, latter))
 
 	def reset_render_parameters(self, state):
-		return self._csi(b'm',
+		return self.csi(b'm',
 			self.cached_integer_encode(0),
 			*self.select_color(True, state.textcolor),
 			*self.select_color(False, state.cellcolor),
@@ -786,18 +796,18 @@ class Screen(Context):
 		# Adjust cursor visibility.
 		"""
 		if visible:
-			return self.terminal_type.decset(25)
+			return self.terminal_type.decset((25,))
 		else:
-			return self.terminal_type.decrst(25)
+			return self.terminal_type.decrst((25,))
 
 	def set_cursor_blink(self, blinking):
 		"""
 		# Adjust cursor blink state.
 		"""
 		if blinking:
-			return self.terminal_type.decset(12)
+			return self.terminal_type.decset((12,))
 		else:
-			return self.terminal_type.decrst(12)
+			return self.terminal_type.decrst((12,))
 
 	def reset(self):
 		"""
@@ -863,17 +873,31 @@ class Screen(Context):
 		"""
 		return self._csi(b'T', self.encode(count))
 
+	def scroll(self, lines:int):
+		"""
+		# Scroll forwards if quantity is positive or zero, backwards if negative.
+		"""
+		if lines < 0:
+			return self._csi(b'S', self.encode(-lines))
+		else:
+			# 0 or >0
+			return self._csi(b'T', self.encode(lines))
+
 	def enter_scrolling_region(self):
 		"""
 		# Enter scrolling region; normal terminal output; restores cursor location.
 		"""
-		return self.terminal_type.decset((self.terminal_type._pm_origin,)) + self.restore_cursor_location()
+		return \
+			self.terminal_type.decset((self.terminal_type._pm_origin,)) + \
+			self.restore_cursor_location()
 
 	def exit_scrolling_region(self):
 		"""
 		# Exit scrolling region; allow out of region printing; saves cursor location.
 		"""
-		return self.store_cursor_location() + self.terminal_type.decrst((self.terminal_type._pm_origin,))
+		return \
+			self.store_cursor_location() + \
+			self.terminal_type.decrst((self.terminal_type._pm_origin,))
 
 	def clear(self):
 		return self.reset_text() + self._csi(b'H') + self._csi(b'2J')
