@@ -70,7 +70,7 @@
 	# A reasonable set of defaults for use with cooked line disciplines.
 	# ! NOTE: Used primarily as an inverse for &cursed.
 # /observe/
-	# Configuration used by &.terminal.bin.observe to maximize the perceived events.
+	# Configuration used by &.bin.observe to maximize the perceived events.
 """
 from . import matrix
 
@@ -123,7 +123,7 @@ def configuration(ttype, settings, options=private_mode_options) -> bytes:
 		ttype.pm_restore(sets+rsts)
 	)
 
-# Configuration Types (ttydevice mode, PM sets, PM resets)
+# Configuration Types (revert mode, ttydevice mode, PM sets, PM resets)
 ctypes = {
 	'cursed': (
 		'cooked', # revert using
@@ -176,8 +176,9 @@ def _terminal_ctl_exit(tty, ctype, write, restoration, limit=64):
 	# Usually called by &setup via atexit
 	issue_warning = False
 	try:
+		file = tty.fileno()
 		while restoration and limit > 0:
-			restoration = restoration[write(tty.fileno(), restoration):]
+			restoration = restoration[write(file, restoration):]
 			limit -= 1
 		else:
 			if limit <= 0:
@@ -194,19 +195,18 @@ def _terminal_ctl_exit(tty, ctype, write, restoration, limit=64):
 			message = "(tty) terminal configuration may be incoherent"
 			sys.stderr.write("\n\r[!* WARNING: %s]\n\r" %(message,))
 
-def _terminal_ctl_init(tty, ctype, write, initialization, limit=64):
-	# Usually called by &setup.
-	mode = ctypes[ctype][1]
+def _terminal_ctl_init(tty, ctype, mode, write, preparation, limit=64):
 	if mode is not None:
 		init_dev = getattr(tty, 'set_' + mode) # set_raw, normally
 		init_dev()
 
-	while initialization and limit > 0:
-		initialization = initialization[write(tty.fileno(), initialization):]
+	file = tty.fileno()
+	while preparation and limit > 0:
+		preparation = preparation[write(file, preparation):]
 		limit -= 1
 
-	if limit <= 0 and initialization:
-		# Didn't finish writing init?
+	if limit <= 0 and preparation:
+		# Didn't finish writing?
 		pass
 
 def setup(
@@ -221,7 +221,8 @@ def setup(
 	# register an atexit handler to reconfigure the terminal into a state
 	# that is usually consistent with a shell's expectations.
 
-	# The given &ttydevice or the one created will be returned.
+	# The given &ttydevice or the one created will be returned along with two
+	# functions that can be used to reinitialize and restore the terminal state.
 
 	# &setup is intended to be a one-shot intiailization method for applications
 	# that can use one of the &.control.ctype entries. If it is insufficient,
@@ -229,7 +230,7 @@ def setup(
 
 	# [ Parameters ]
 	# /ctype/
-		# The &[Configuration Type] to apply immediately after the atexit handler has been registered.
+		# The &[Configuration Types] to apply immediately after the atexit handler has been registered.
 		# Usually, the default, `'cursed'`, is the desired value and selects the configuration
 		# set from &ctypes.
 	# /ttype/
@@ -250,7 +251,15 @@ def setup(
 		# Additional binary string to write to the terminal device at initialization.
 	# /atexit/
 		# Additional binary string to write to the terminal device at exit.
+
+	# [ Returns ]
+	# A tuple:
+	# # &..system.tty.Device instance.
+	# # Preparation Callable
+	# # Restoration Callable
+	# The two callables can be used for applications supporting suspend operations.
 	"""
+	import signal
 	import functools
 	import atexit as ae
 	from os import write
@@ -270,8 +279,11 @@ def setup(
 	restoration = undo + restores + ttype.wm_title('') + ttype.wm(23, 0)
 	restoration += atexit
 
-	ae.register(functools.partial(_terminal_ctl_exit, ttydevice, ctype, write, restoration, limit=limit))
-	_terminal_ctl_init(ttydevice, ctype, write, init, limit=limit)
+	restore = functools.partial(_terminal_ctl_exit, ttydevice, ctype, write, restoration, limit=limit)
+	ae.register(restore)
+
+	imode = ctypes[ctype][1]
+	prepare = functools.partial(_terminal_ctl_init, ttydevice, ctype, imode, write, init, limit=limit)
 
 	if destruct is True:
 		import sys
@@ -279,4 +291,4 @@ def setup(
 		m.__dict__.clear()
 		del m
 
-	return ttydevice
+	return ttydevice, prepare, restore
