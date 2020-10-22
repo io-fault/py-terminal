@@ -9,7 +9,7 @@
 /name/
 	`terminal`
 /abstract/
-	Terminal control interfaces
+	Terminal control interfaces and drawing contexts.
 
 /authority/
 	`fault.io`

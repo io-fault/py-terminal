@@ -1,7 +1,10 @@
 """
-# Terminal input events parser.
+# Terminal input events parser for common CSI, CSI-u, and ground characters.
 """
 import functools
+from typing import Generator
+from typing import Sequence
+from typing import Tuple
 
 from . import core
 
@@ -140,13 +143,19 @@ def im_test(char, xstart=ord('A'), xstop=ord('z')):
 
 	return False
 
-def dispatch_sequence(region:str, separator=';'):
+def dispatch_sequence(region:str, separator=';') -> Tuple[str, Sequence[int], str]:
 	"""
 	# Parse, normally CSI, returning the intermediates, parameters, terminator,
 	# and any following text as a remainder.
 
 	# If no final character is present in the CSI, the last field in the returned
 	# tuple will be &None indicating that a continuation or timeout should occur.
+
+	# [ Returns ]
+	# A tuple:
+	# # Intermediates
+	# # Parameters
+	# # Terminator
 	"""
 
 	terminator = None
@@ -326,7 +335,9 @@ def process_region_data(escape, region, Meta=Meta, Zero=Zero):
 	yield Character(('data', escape, 'paste', Zero))
 	yield Character(('data', region, 'paste', Zero))
 
-def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print, Zero=Zero, map=map):
+def Parser(initial="", Sequence=list, escape="\x1b", separator=";",
+		print=print, Zero=Zero, map=map
+	) -> Generator[Sequence[Character], str, Sequence[Character]]:
 	"""
 	# VT100 CSI and Ground Parser constructing &core.Event sequences from
 	# received &str instances.
@@ -426,9 +437,9 @@ def Parser(initial="", Sequence=list, escape="\x1b", separator=";", print=print,
 		data, finish = (yield events)
 		events = Sequence()
 
-def parser(initial:str=""):
+def parser(initial:str="") -> Parser:
 	"""
-	# Construct a started &Parser instance.
+	# Construct a running &Parser generator for interpreting CSI and ground characters.
 
 	# [ Parameters ]
 	# /initial/

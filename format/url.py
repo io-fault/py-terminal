@@ -40,7 +40,7 @@ def f_struct(struct):
 
 def f_string(string):
 	"""
-	# Format the string returning an iterable for use with &..device.Display.renderline
+	# Format the string returning an iterable for use with &.matrix.Context.render
 	"""
 	return f_struct(ri.parse(string))
 

@@ -280,7 +280,7 @@ def translate(rgb:int):
 	# both gray and color palettes. &scale_gray and &scale_color are used to the select
 	# the closest value in the corresponding palette.
 
-	# [ Return ]
+	# [ Returns ]
 	# A pair of tuples containing both the scaled gray and color. The tuples are
 	# pairs with the first item designating whether it's color or gray and the second
 	# item being the scaled value.
