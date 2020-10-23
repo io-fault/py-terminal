@@ -214,19 +214,14 @@ def setup(
 		ttype:matrix.Type=matrix.utf8_terminal_type,
 		destruct=False,
 		ttydevice=None,
-		atinit=b'', atexit=b'', limit=64,
+		atprepare=b'', atrestore=b'', limit=64,
 	):
 	"""
-	# Initialize the terminal and kernel line discipline for the given &ctype and
-	# register an atexit handler to reconfigure the terminal into a state
-	# that is usually consistent with a shell's expectations.
+	# Construct a device instance and functions for preparing the terminal and
+	# kernel line discipline for the given &ctype.
 
 	# The given &ttydevice or the one created will be returned along with two
-	# functions that can be used to reinitialize and restore the terminal state.
-
-	# &setup is intended to be a one-shot intiailization method for applications
-	# that can use one of the &.control.ctype entries. If it is insufficient,
-	# applications should implement their own variant.
+	# functions that can be used to prepare and restore the terminal state.
 
 	# [ Parameters ]
 	# /ctype/
@@ -247,10 +242,10 @@ def setup(
 		# The &fault.system.tty.Device instance whose restore method should be called atexit.
 		# If &tty is not provided, a &fault.system.tty.Device instance will be created from the
 		# system's tty path (usually (fs/path)`/dev/tty`) and call its `record` method.
-	# /atinit/
-		# Additional binary string to write to the terminal device at initialization.
-	# /atexit/
-		# Additional binary string to write to the terminal device at exit.
+	# /atprepare/
+		# Additional binary string to write to the terminal device at preparation.
+	# /atrestore/
+		# Additional binary string to write to the terminal device at restoration.
 
 	# [ Returns ]
 	# A tuple:
@@ -259,9 +254,7 @@ def setup(
 	# # Restoration Callable
 	# The two callables can be used for applications supporting suspend operations.
 	"""
-	import signal
 	import functools
-	import atexit as ae
 	from os import write
 
 	if ttydevice is None:
@@ -270,17 +263,16 @@ def setup(
 	ttydevice.record()
 
 	undomode, s, r, saves, restores = configuration(ttype, ctypes[ctype])
-	init = saves + s + r + ttype.wm(22,0) + atinit
+	init = saves + s + r + ttype.wm(22,0) + atprepare
 
 	undo = b''
 	if undomode is not None:
 		undo = b''.join(configuration(ttype, ctypes[undomode])[1:3])
 
 	restoration = undo + restores + ttype.wm_title('') + ttype.wm(23, 0)
-	restoration += atexit
+	restoration += atrestore
 
 	restore = functools.partial(_terminal_ctl_exit, ttydevice, ctype, write, restoration, limit=limit)
-	ae.register(restore)
 
 	imode = ctypes[ctype][1]
 	prepare = functools.partial(_terminal_ctl_init, ttydevice, ctype, imode, write, init, limit=limit)

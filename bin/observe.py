@@ -7,15 +7,18 @@ from .. import events
 
 def loop(tty, prepare, restore):
 	prepare()
-	parser = events.parser()
-	fd = tty.fileno()
-	while True:
-		data = os.read(fd, 1024*2)
-		string = data.decode('utf-8')
-		for k in parser.send((string, True)):
-			print(repr(k) + '\r')
-			if k.type == 'control' and k.identity == 'c':
-				sys.exit(1)
+	try:
+		parser = events.parser()
+		fd = tty.fileno()
+		while True:
+			data = os.read(fd, 1024*2)
+			string = data.decode('utf-8')
+			for k in parser.send((string, True)):
+				print(repr(k) + '\r')
+				if k.type == 'control' and k.identity == 'c':
+					sys.exit(1)
+	finally:
+		restore()
 
 def main():
 	from .. import control
