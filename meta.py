@@ -56,6 +56,9 @@ characters = {
 	'element-of': '∈',
 	'contains-as': '∋',
 
+	'corner-bracket-open': '｢',
+	'corner-bracket-close': '｣',
+
 	'universal-quantifier': '∀',
 	'there-exists': '∃',
 	'perpendicular': '\u27c2',
@@ -136,16 +139,18 @@ mapping = {
 	'!': 'not',
 	'^': 'n-ary-product',
 
-	'[': 'subset-of',
-	']': 'superset-of',
-	'(': 'intersection',
-	')': 'union',
+	'[': 'corner-bracket-open',
+	']': 'corner-bracket-close',
+	'+': 'intersection',
+	'|': 'union',
+	'(': 'subset-of',
+	')': 'superset-of',
 	'{': 'element-of',
 	'}': 'contains-as',
 
 	';': 'infinity',
 	':': 'sine',
-	'|': 'perpendicular',
+	'-': 'perpendicular',
 	'@': 'universal-quantifier',
 	'$': 'there-exists',
 }
