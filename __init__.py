@@ -1,4 +1,1 @@
-"""
-# Display management for multiple terminal types.
-"""
-__factor_type__ = 'project'
+# Project package module for supporting sys.path imports.
