@@ -51,7 +51,7 @@ def _f_route_factor_type(route, ia_link=route_is_link):
 			return 'context'
 	else:
 		if file_exists:
-			if (route / '.git').exists():
+			if (route / '.git').fs_type() == 'directory':
 				return 'project'
 
 	return 'unqualified'
